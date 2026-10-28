@@ -5,6 +5,8 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -32,6 +34,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -39,10 +42,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import br.com.loginfirebase.ui.theme.LoginFirebaseTheme
@@ -52,11 +60,13 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-private val EventsNavy = Color(0xFF172554)
-private val EventsBlue = Color(0xFF3568D4)
-private val EventsBackground = Color(0xFFF3F6FC)
-private val EventsText = Color(0xFF24324A)
-private val EventsMuted = Color(0xFF718096)
+private val EventsNavy = Color(0xFF172D59)
+private val EventsBlue = Color(0xFF2864D7)
+private val EventsBackground = Color(0xFFF3F7FD)
+private val EventsText = Color(0xFF142748)
+private val EventsMuted = Color(0xFF657694)
+private val EventsIconBackground = Color(0xFFEAF1FE)
+private val EventsBorder = Color(0xFFE0E9F7)
 
 data class EventoBusca(
     val id: String,
@@ -109,11 +119,10 @@ class EventsActivity : ComponentActivity() {
 
                 val eventosFiltrados = eventosCarregados.filter { evento ->
 
-                    val correspondeBusca =
-                        evento.nome.contains(
-                            busca,
-                            ignoreCase = true
-                        )
+                    val correspondeBusca = evento.nome.contains(
+                        busca,
+                        ignoreCase = true
+                    )
 
                     val correspondeCategoria =
                         categoriaSelecionada == "Todas" ||
@@ -121,17 +130,15 @@ class EventsActivity : ComponentActivity() {
 
                     val correspondeSituacao =
                         when (situacaoSelecionada) {
-                            "Próximos" ->
-                                !eventoEncerrado(
-                                    evento.data,
-                                    evento.horario
-                                )
+                            "Próximos" -> !eventoEncerrado(
+                                evento.data,
+                                evento.horario
+                            )
 
-                            "Encerrados" ->
-                                eventoEncerrado(
-                                    evento.data,
-                                    evento.horario
-                                )
+                            "Encerrados" -> eventoEncerrado(
+                                evento.data,
+                                evento.horario
+                            )
 
                             else -> true
                         }
@@ -150,100 +157,6 @@ class EventsActivity : ComponentActivity() {
                         .verticalScroll(rememberScrollState())
                 ) {
 
-                    // Cabeçalho do CampusHub
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(
-                                RoundedCornerShape(
-                                    bottomStart = 30.dp,
-                                    bottomEnd = 30.dp
-                                )
-                            )
-                            .background(
-                                Brush.verticalGradient(
-                                    colors = listOf(
-                                        EventsNavy,
-                                        EventsBlue
-                                    )
-                                )
-                            )
-                            .padding(
-                                horizontal = 24.dp,
-                                vertical = 25.dp
-                            )
-                    ) {
-
-                        Column {
-
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-
-                                Box(
-                                    modifier = Modifier
-                                        .size(48.dp)
-                                        .clip(
-                                            RoundedCornerShape(15.dp)
-                                        )
-                                        .background(
-                                            Color.White.copy(alpha = 0.17f)
-                                        ),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = "CH",
-                                        color = Color.White,
-                                        fontSize = 18.sp,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
-
-                                Spacer(
-                                    modifier = Modifier.width(12.dp)
-                                )
-
-                                Column {
-
-                                    Text(
-                                        text = "CampusHub",
-                                        color = Color.White,
-                                        fontSize = 22.sp,
-                                        fontWeight = FontWeight.Bold
-                                    )
-
-                                    Text(
-                                        text = "EVENTOS UNIVERSITÁRIOS",
-                                        color = Color.White.copy(alpha = 0.8f),
-                                        fontSize = 10.sp,
-                                        letterSpacing = 1.sp
-                                    )
-                                }
-                            }
-
-                            Spacer(
-                                modifier = Modifier.height(23.dp)
-                            )
-
-                            Text(
-                                text = "Explore os eventos",
-                                color = Color.White,
-                                fontSize = 25.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-
-                            Spacer(
-                                modifier = Modifier.height(6.dp)
-                            )
-
-                            Text(
-                                text = "Descubra oportunidades e atividades no campus.",
-                                color = Color.White.copy(alpha = 0.85f),
-                                fontSize = 13.sp
-                            )
-                        }
-                    }
-
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -251,28 +164,18 @@ class EventsActivity : ComponentActivity() {
                     ) {
 
                         Spacer(
-                            modifier = Modifier.height(22.dp)
+                            modifier = Modifier.height(18.dp)
                         )
 
                         Text(
-                            text = "Encontre seu próximo evento",
-                            color = EventsText,
-                            fontSize = 18.sp,
+                            text = "Eventos",
+                            color = EventsNavy,
+                            fontSize = 26.sp,
                             fontWeight = FontWeight.Bold
                         )
 
                         Spacer(
-                            modifier = Modifier.height(6.dp)
-                        )
-
-                        Text(
-                            text = "Busque pelo nome ou aplique os filtros.",
-                            color = EventsMuted,
-                            fontSize = 13.sp
-                        )
-
-                        Spacer(
-                            modifier = Modifier.height(16.dp)
+                            modifier = Modifier.height(14.dp)
                         )
 
                         OutlinedTextField(
@@ -281,24 +184,24 @@ class EventsActivity : ComponentActivity() {
                                 busca = it
                             },
                             modifier = Modifier.fillMaxWidth(),
-                            label = {
-                                Text("Buscar evento")
-                            },
                             placeholder = {
-                                Text("Digite o título do evento")
+                                Text(
+                                    text = "Buscar evento",
+                                    fontSize = 14.sp
+                                )
                             },
                             leadingIcon = {
-                                Text(
-                                    text = "⌕",
-                                    fontSize = 25.sp,
-                                    color = EventsBlue
+                                IconeEventos(
+                                    tipo = "busca",
+                                    cor = EventsBlue,
+                                    tamanho = 23.dp
                                 )
                             },
                             singleLine = true,
-                            shape = RoundedCornerShape(15.dp),
+                            shape = RoundedCornerShape(17.dp),
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = EventsBlue,
-                                unfocusedBorderColor = Color(0xFFD6DEEA),
+                                unfocusedBorderColor = Color(0xFFD3E1FA),
                                 focusedLabelColor = EventsBlue,
                                 cursorColor = EventsBlue,
                                 focusedContainerColor = Color.White,
@@ -307,18 +210,18 @@ class EventsActivity : ComponentActivity() {
                         )
 
                         Spacer(
-                            modifier = Modifier.height(20.dp)
+                            modifier = Modifier.height(22.dp)
                         )
 
                         Text(
                             text = "Filtros",
-                            color = EventsText,
-                            fontSize = 16.sp,
+                            color = EventsNavy,
+                            fontSize = 21.sp,
                             fontWeight = FontWeight.Bold
                         )
 
                         Spacer(
-                            modifier = Modifier.height(10.dp)
+                            modifier = Modifier.height(12.dp)
                         )
 
                         Row(
@@ -326,31 +229,16 @@ class EventsActivity : ComponentActivity() {
                             horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
 
-                            // Filtro de categoria
                             Box(
                                 modifier = Modifier.weight(1f)
                             ) {
 
-                                Button(
+                                CartaoFiltro(
+                                    texto = "Categoria: $categoriaSelecionada",
                                     onClick = {
                                         menuCategoriaAberto = true
-                                    },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    shape = RoundedCornerShape(13.dp),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = Color.White,
-                                        contentColor = EventsNavy
-                                    ),
-                                    elevation = ButtonDefaults.buttonElevation(
-                                        defaultElevation = 1.dp
-                                    )
-                                ) {
-                                    Text(
-                                        text = "Categoria: $categoriaSelecionada",
-                                        fontSize = 11.sp,
-                                        maxLines = 1
-                                    )
-                                }
+                                    }
+                                )
 
                                 DropdownMenu(
                                     expanded = menuCategoriaAberto,
@@ -391,31 +279,16 @@ class EventsActivity : ComponentActivity() {
                                 }
                             }
 
-                            // Filtro de situação
                             Box(
                                 modifier = Modifier.weight(1f)
                             ) {
 
-                                Button(
+                                CartaoFiltro(
+                                    texto = "Situação: $situacaoSelecionada",
                                     onClick = {
                                         menuSituacaoAberto = true
-                                    },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    shape = RoundedCornerShape(13.dp),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = Color.White,
-                                        contentColor = EventsNavy
-                                    ),
-                                    elevation = ButtonDefaults.buttonElevation(
-                                        defaultElevation = 1.dp
-                                    )
-                                ) {
-                                    Text(
-                                        text = "Situação: $situacaoSelecionada",
-                                        fontSize = 11.sp,
-                                        maxLines = 1
-                                    )
-                                }
+                                    }
+                                )
 
                                 DropdownMenu(
                                     expanded = menuSituacaoAberto,
@@ -458,31 +331,37 @@ class EventsActivity : ComponentActivity() {
                         }
 
                         Spacer(
-                            modifier = Modifier.height(22.dp)
+                            modifier = Modifier.height(24.dp)
                         )
 
                         Text(
                             text = "${eventosFiltrados.size} evento(s) encontrado(s)",
                             color = EventsMuted,
-                            fontSize = 12.sp
+                            fontSize = 14.sp
                         )
 
                         Spacer(
-                            modifier = Modifier.height(12.dp)
+                            modifier = Modifier.height(14.dp)
                         )
 
                         when {
+
                             carregandoEventos -> {
 
                                 Card(
                                     modifier = Modifier.fillMaxWidth(),
-                                    shape = RoundedCornerShape(20.dp),
+                                    shape = RoundedCornerShape(22.dp),
                                     colors = CardDefaults.cardColors(
                                         containerColor = Color.White
+                                    ),
+                                    border = BorderStroke(
+                                        1.dp,
+                                        EventsBorder
                                     )
                                 ) {
+
                                     Text(
-                                        text = "Carregando eventos do Firebase...",
+                                        text = "Carregando eventos...",
                                         color = EventsMuted,
                                         modifier = Modifier.padding(24.dp)
                                     )
@@ -493,11 +372,16 @@ class EventsActivity : ComponentActivity() {
 
                                 Card(
                                     modifier = Modifier.fillMaxWidth(),
-                                    shape = RoundedCornerShape(20.dp),
+                                    shape = RoundedCornerShape(22.dp),
                                     colors = CardDefaults.cardColors(
                                         containerColor = Color.White
+                                    ),
+                                    border = BorderStroke(
+                                        1.dp,
+                                        EventsBorder
                                     )
                                 ) {
+
                                     Text(
                                         text = "Não foi possível carregar os eventos. Verifique a conexão e as regras do Firestore.",
                                         color = EventsText,
@@ -510,9 +394,13 @@ class EventsActivity : ComponentActivity() {
 
                                 Card(
                                     modifier = Modifier.fillMaxWidth(),
-                                    shape = RoundedCornerShape(20.dp),
+                                    shape = RoundedCornerShape(22.dp),
                                     colors = CardDefaults.cardColors(
                                         containerColor = Color.White
+                                    ),
+                                    border = BorderStroke(
+                                        1.dp,
+                                        EventsBorder
                                     )
                                 ) {
 
@@ -522,15 +410,6 @@ class EventsActivity : ComponentActivity() {
                                             .padding(25.dp),
                                         horizontalAlignment = Alignment.CenterHorizontally
                                     ) {
-
-                                        Text(
-                                            text = "🔎",
-                                            fontSize = 32.sp
-                                        )
-
-                                        Spacer(
-                                            modifier = Modifier.height(10.dp)
-                                        )
 
                                         Text(
                                             text = "Nenhum evento encontrado",
@@ -556,138 +435,34 @@ class EventsActivity : ComponentActivity() {
 
                                 eventosFiltrados.forEach { evento ->
 
-                                    Card(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clickable {
-                                                abrirDetalhes(
-                                                    id = evento.id,
-                                                    nome = evento.nome,
-                                                    data = evento.data,
-                                                    horario = evento.horario,
-                                                    local = evento.local,
-                                                    descricao = evento.descricao,
-                                                    endereco = evento.endereco
-                                                )
-                                            },
-                                        shape = RoundedCornerShape(20.dp),
-                                        colors = CardDefaults.cardColors(
-                                            containerColor = Color.White
+                                    CartaoEvento(
+                                        evento = evento,
+                                        encerrado = eventoEncerrado(
+                                            evento.data,
+                                            evento.horario
                                         ),
-                                        elevation = CardDefaults.cardElevation(
-                                            defaultElevation = 2.dp
-                                        )
-                                    ) {
-
-                                        Column(
-                                            modifier = Modifier.padding(17.dp)
-                                        ) {
-
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-
-                                                Box(
-                                                    modifier = Modifier
-                                                        .size(48.dp)
-                                                        .clip(
-                                                            RoundedCornerShape(15.dp)
-                                                        )
-                                                        .background(Color(0xFFEAF0FF)),
-                                                    contentAlignment = Alignment.Center
-                                                ) {
-
-                                                    Text(
-                                                        text = if (
-                                                            evento.categoria == "Acadêmico"
-                                                        ) {
-                                                            "🎓"
-                                                        } else {
-                                                            "💻"
-                                                        },
-                                                        fontSize = 22.sp
-                                                    )
-                                                }
-
-                                                Spacer(
-                                                    modifier = Modifier.width(12.dp)
-                                                )
-
-                                                Column(
-                                                    modifier = Modifier.weight(1f)
-                                                ) {
-
-                                                    Text(
-                                                        text = evento.nome,
-                                                        color = EventsText,
-                                                        fontSize = 16.sp,
-                                                        fontWeight = FontWeight.Bold
-                                                    )
-
-                                                    Spacer(
-                                                        modifier = Modifier.height(5.dp)
-                                                    )
-
-                                                    Text(
-                                                        text = evento.categoria,
-                                                        color = EventsBlue,
-                                                        fontSize = 12.sp,
-                                                        fontWeight = FontWeight.Medium
-                                                    )
-                                                }
-                                            }
-
-                                            Spacer(
-                                                modifier = Modifier.height(16.dp)
-                                            )
-
-                                            Text(
-                                                text = "📅  ${evento.data}  •  ${evento.horario}",
-                                                color = EventsText,
-                                                fontSize = 12.sp
-                                            )
-
-                                            Spacer(
-                                                modifier = Modifier.height(8.dp)
-                                            )
-
-                                            Text(
-                                                text = "📍  ${evento.local}",
-                                                color = EventsMuted,
-                                                fontSize = 12.sp
-                                            )
-
-                                            Spacer(
-                                                modifier = Modifier.height(13.dp)
-                                            )
-
-                                            Text(
-                                                text = if (
-                                                    eventoEncerrado(
-                                                        evento.data,
-                                                        evento.horario
-                                                    )
-                                                ) {
-                                                    "VER DETALHES  →  •  ENCERRADO"
-                                                } else {
-                                                    "VER DETALHES  →"
-                                                },
-                                                color = EventsBlue,
-                                                fontSize = 12.sp,
-                                                fontWeight = FontWeight.Bold
+                                        onClick = {
+                                            abrirDetalhes(
+                                                id = evento.id,
+                                                nome = evento.nome,
+                                                data = evento.data,
+                                                horario = evento.horario,
+                                                local = evento.local,
+                                                descricao = evento.descricao,
+                                                endereco = evento.endereco
                                             )
                                         }
-                                    }
+                                    )
 
                                     Spacer(
-                                        modifier = Modifier.height(13.dp)
+                                        modifier = Modifier.height(14.dp)
                                     )
                                 }
                             }
                         }
 
                         Spacer(
-                            modifier = Modifier.height(15.dp)
+                            modifier = Modifier.height(8.dp)
                         )
 
                         Button(
@@ -696,27 +471,30 @@ class EventsActivity : ComponentActivity() {
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(51.dp),
-                            shape = RoundedCornerShape(14.dp),
+                                .height(54.dp),
+                            shape = RoundedCornerShape(17.dp),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = EventsNavy,
                                 contentColor = Color.White
                             )
                         ) {
+
                             Text(
                                 text = "VOLTAR",
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 15.sp
                             )
                         }
 
                         Spacer(
-                            modifier = Modifier.height(20.dp)
+                            modifier = Modifier.height(17.dp)
                         )
 
                         Text(
-                            text = "CAMPUSHUB • URI SANTIAGO",
-                            color = EventsMuted,
+                            text = "CAMPUSHUB  •  URI SANTIAGO",
+                            color = Color(0xFF8798B6),
                             fontSize = 10.sp,
+                            letterSpacing = 1.2.sp,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(bottom = 12.dp),
@@ -727,14 +505,12 @@ class EventsActivity : ComponentActivity() {
             }
         }
 
-        // Cria somente os documentos que ainda não existem.
-        // Documentos existentes não são sobrescritos.
         garantirEventosIniciais()
     }
 
-    // Define um endereço para cada evento diretamente no código.
     private fun enderecoPadrao(id: String): String {
         return when (id) {
+
             "semana_academica" ->
                 "Av. Batista Bonotto Sobrinho, 733, Santiago - RS, Brasil"
 
@@ -752,6 +528,7 @@ class EventsActivity : ComponentActivity() {
     private fun obterEventosIniciais(): List<EventoBusca> {
 
         return listOf(
+
             EventoBusca(
                 id = "semana_academica",
                 nome = "Semana Acadêmica",
@@ -762,6 +539,7 @@ class EventsActivity : ComponentActivity() {
                 categoria = "Acadêmico",
                 endereco = enderecoPadrao("semana_academica")
             ),
+
             EventoBusca(
                 id = "hackathon_campushub",
                 nome = "Hackathon CampusHub",
@@ -772,6 +550,7 @@ class EventsActivity : ComponentActivity() {
                 categoria = "Tecnologia",
                 endereco = enderecoPadrao("hackathon_campushub")
             ),
+
             EventoBusca(
                 id = "palestra_tecnologia",
                 nome = "Palestra de Tecnologia",
@@ -830,7 +609,6 @@ class EventsActivity : ComponentActivity() {
 
                 if (documento.exists()) {
 
-                    // Não altera o documento se ele já existe.
                     verificarOuCriarEvento(
                         eventos,
                         indice + 1
@@ -882,8 +660,6 @@ class EventsActivity : ComponentActivity() {
                     val descricao = documento.getString("descricaoEvento")
                     val categoria = documento.getString("categoria")
 
-                    // Se não existir enderecoEvento no Firebase,
-                    // utiliza o endereço definido no código.
                     val endereco = documento.getString("enderecoEvento")
                         ?: enderecoPadrao(documento.id)
 
@@ -910,6 +686,7 @@ class EventsActivity : ComponentActivity() {
                     } else {
                         null
                     }
+
                 }.sortedBy { evento ->
                     ordenarData(evento.data)
                 }
@@ -989,10 +766,523 @@ class EventsActivity : ComponentActivity() {
         intent.putExtra("horarioEvento", horario)
         intent.putExtra("localEvento", local)
         intent.putExtra("descricaoEvento", descricao)
-
-        // Envia o endereço específico para a tela de detalhes.
         intent.putExtra("enderecoEvento", endereco)
 
         startActivity(intent)
+    }
+}
+
+@Composable
+private fun CartaoFiltro(
+    texto: String,
+    onClick: () -> Unit
+) {
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(56.dp)
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(17.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        ),
+        border = BorderStroke(
+            1.dp,
+            Color(0xFFD3E1FA)
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 0.dp
+        )
+    ) {
+
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+
+            Text(
+                text = texto,
+                modifier = Modifier.weight(1f),
+                color = EventsNavy,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium,
+                maxLines = 1
+            )
+
+            IconeEventos(
+                tipo = "chevron",
+                cor = EventsBlue,
+                tamanho = 19.dp
+            )
+        }
+    }
+}
+
+@Composable
+private fun CartaoEvento(
+    evento: EventoBusca,
+    encerrado: Boolean,
+    onClick: () -> Unit
+) {
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(23.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        ),
+        border = BorderStroke(
+            1.dp,
+            EventsBorder
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 2.dp
+        )
+    ) {
+
+        Column(
+            modifier = Modifier.padding(18.dp)
+        ) {
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+
+                Box(
+                    modifier = Modifier
+                        .size(58.dp)
+                        .clip(RoundedCornerShape(17.dp))
+                        .background(EventsIconBackground),
+                    contentAlignment = Alignment.Center
+                ) {
+
+                    IconeEventos(
+                        tipo = if (evento.categoria == "Acadêmico") {
+                            "academico"
+                        } else {
+                            "tecnologia"
+                        },
+                        cor = EventsNavy,
+                        tamanho = 35.dp
+                    )
+                }
+
+                Spacer(
+                    modifier = Modifier.width(15.dp)
+                )
+
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
+
+                    Text(
+                        text = evento.nome,
+                        color = EventsNavy,
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Spacer(
+                        modifier = Modifier.height(7.dp)
+                    )
+
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(50.dp))
+                            .background(Color(0xFFE8F0FF))
+                            .padding(
+                                horizontal = 13.dp,
+                                vertical = 5.dp
+                            )
+                    ) {
+
+                        Text(
+                            text = evento.categoria,
+                            color = EventsBlue,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+            }
+
+            Spacer(
+                modifier = Modifier.height(17.dp)
+            )
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+
+                IconeEventos(
+                    tipo = "calendario",
+                    cor = EventsBlue,
+                    tamanho = 24.dp
+                )
+
+                Spacer(
+                    modifier = Modifier.width(15.dp)
+                )
+
+                Text(
+                    text = "${evento.data}  ·  ${evento.horario}",
+                    color = EventsText,
+                    fontSize = 14.sp
+                )
+            }
+
+            Spacer(
+                modifier = Modifier.height(13.dp)
+            )
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+
+                IconeEventos(
+                    tipo = "localizacao",
+                    cor = EventsBlue,
+                    tamanho = 24.dp
+                )
+
+                Spacer(
+                    modifier = Modifier.width(15.dp)
+                )
+
+                Text(
+                    text = evento.local,
+                    color = EventsMuted,
+                    fontSize = 14.sp
+                )
+            }
+
+            Spacer(
+                modifier = Modifier.height(18.dp)
+            )
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(EventsBorder)
+            )
+
+            Spacer(
+                modifier = Modifier.height(14.dp)
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+
+                Row(
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+
+                    Text(
+                        text = "VER DETALHES",
+                        color = EventsBlue,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Spacer(
+                        modifier = Modifier.width(10.dp)
+                    )
+
+                    IconeEventos(
+                        tipo = "seta",
+                        cor = EventsBlue,
+                        tamanho = 22.dp
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .width(1.dp)
+                        .height(27.dp)
+                        .background(EventsBorder)
+                )
+
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(start = 14.dp),
+                    contentAlignment = Alignment.CenterStart
+                ) {
+
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(50.dp))
+                            .background(
+                                if (encerrado) {
+                                    Color(0xFFE8EDF5)
+                                } else {
+                                    Color(0xFFE7F6EE)
+                                }
+                            )
+                            .padding(
+                                horizontal = 12.dp,
+                                vertical = 7.dp
+                            )
+                    ) {
+
+                        Text(
+                            text = if (encerrado) {
+                                "ENCERRADO"
+                            } else {
+                                "PRÓXIMO"
+                            },
+                            color = if (encerrado) {
+                                EventsMuted
+                            } else {
+                                Color(0xFF237A4B)
+                            },
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun IconeEventos(
+    tipo: String,
+    cor: Color,
+    tamanho: Dp
+) {
+
+    Canvas(
+        modifier = Modifier.size(tamanho)
+    ) {
+
+        val s = size.width
+
+        val traco = Stroke(
+            width = 2.3.dp.toPx()
+        )
+
+        when (tipo) {
+
+            "academico" -> {
+
+                val cap = Path().apply {
+                    moveTo(s * 0.08f, s * 0.36f)
+                    lineTo(s * 0.50f, s * 0.14f)
+                    lineTo(s * 0.92f, s * 0.36f)
+                    lineTo(s * 0.50f, s * 0.58f)
+                    close()
+                }
+
+                drawPath(
+                    path = cap,
+                    color = cor,
+                    style = traco
+                )
+
+                drawLine(
+                    color = cor,
+                    start = Offset(s * 0.24f, s * 0.46f),
+                    end = Offset(s * 0.24f, s * 0.64f),
+                    strokeWidth = traco.width
+                )
+
+                drawArc(
+                    color = cor,
+                    startAngle = 0f,
+                    sweepAngle = 180f,
+                    useCenter = false,
+                    topLeft = Offset(s * 0.24f, s * 0.49f),
+                    size = Size(s * 0.52f, s * 0.38f),
+                    style = traco
+                )
+
+                drawLine(
+                    color = cor,
+                    start = Offset(s * 0.91f, s * 0.37f),
+                    end = Offset(s * 0.91f, s * 0.70f),
+                    strokeWidth = traco.width
+                )
+            }
+
+            "tecnologia" -> {
+
+                drawRoundRect(
+                    color = cor,
+                    topLeft = Offset(s * 0.20f, s * 0.12f),
+                    size = Size(s * 0.60f, s * 0.58f),
+                    cornerRadius = CornerRadius(s * 0.05f),
+                    style = traco
+                )
+
+                drawLine(
+                    color = cor,
+                    start = Offset(s * 0.12f, s * 0.82f),
+                    end = Offset(s * 0.88f, s * 0.82f),
+                    strokeWidth = traco.width
+                )
+
+                drawLine(
+                    color = cor,
+                    start = Offset(s * 0.20f, s * 0.70f),
+                    end = Offset(s * 0.12f, s * 0.82f),
+                    strokeWidth = traco.width
+                )
+
+                drawLine(
+                    color = cor,
+                    start = Offset(s * 0.80f, s * 0.70f),
+                    end = Offset(s * 0.88f, s * 0.82f),
+                    strokeWidth = traco.width
+                )
+            }
+
+            "calendario" -> {
+
+                drawRoundRect(
+                    color = cor,
+                    topLeft = Offset(s * 0.16f, s * 0.20f),
+                    size = Size(s * 0.68f, s * 0.66f),
+                    cornerRadius = CornerRadius(s * 0.08f),
+                    style = traco
+                )
+
+                drawLine(
+                    color = cor,
+                    start = Offset(s * 0.16f, s * 0.41f),
+                    end = Offset(s * 0.84f, s * 0.41f),
+                    strokeWidth = traco.width
+                )
+
+                drawLine(
+                    color = cor,
+                    start = Offset(s * 0.34f, s * 0.10f),
+                    end = Offset(s * 0.34f, s * 0.29f),
+                    strokeWidth = traco.width
+                )
+
+                drawLine(
+                    color = cor,
+                    start = Offset(s * 0.66f, s * 0.10f),
+                    end = Offset(s * 0.66f, s * 0.29f),
+                    strokeWidth = traco.width
+                )
+            }
+
+            "localizacao" -> {
+
+                val marcador = Path().apply {
+
+                    moveTo(s * 0.50f, s * 0.91f)
+
+                    cubicTo(
+                        s * 0.43f, s * 0.78f,
+                        s * 0.18f, s * 0.54f,
+                        s * 0.18f, s * 0.39f
+                    )
+
+                    cubicTo(
+                        s * 0.18f, s * 0.19f,
+                        s * 0.34f, s * 0.08f,
+                        s * 0.50f, s * 0.08f
+                    )
+
+                    cubicTo(
+                        s * 0.66f, s * 0.08f,
+                        s * 0.82f, s * 0.19f,
+                        s * 0.82f, s * 0.39f
+                    )
+
+                    cubicTo(
+                        s * 0.82f, s * 0.54f,
+                        s * 0.57f, s * 0.78f,
+                        s * 0.50f, s * 0.91f
+                    )
+
+                    close()
+                }
+
+                drawPath(
+                    path = marcador,
+                    color = cor,
+                    style = traco
+                )
+
+                drawCircle(
+                    color = cor,
+                    radius = s * 0.10f,
+                    center = Offset(s * 0.50f, s * 0.38f),
+                    style = traco
+                )
+            }
+
+            "busca" -> {
+
+                drawCircle(
+                    color = cor,
+                    radius = s * 0.29f,
+                    center = Offset(s * 0.40f, s * 0.40f),
+                    style = traco
+                )
+
+                drawLine(
+                    color = cor,
+                    start = Offset(s * 0.61f, s * 0.61f),
+                    end = Offset(s * 0.88f, s * 0.88f),
+                    strokeWidth = traco.width
+                )
+            }
+
+            "chevron" -> {
+
+                drawLine(
+                    color = cor,
+                    start = Offset(s * 0.24f, s * 0.36f),
+                    end = Offset(s * 0.50f, s * 0.63f),
+                    strokeWidth = traco.width
+                )
+
+                drawLine(
+                    color = cor,
+                    start = Offset(s * 0.50f, s * 0.63f),
+                    end = Offset(s * 0.76f, s * 0.36f),
+                    strokeWidth = traco.width
+                )
+            }
+
+            "seta" -> {
+
+                drawLine(
+                    color = cor,
+                    start = Offset(s * 0.12f, s * 0.50f),
+                    end = Offset(s * 0.84f, s * 0.50f),
+                    strokeWidth = traco.width
+                )
+
+                drawLine(
+                    color = cor,
+                    start = Offset(s * 0.57f, s * 0.22f),
+                    end = Offset(s * 0.84f, s * 0.50f),
+                    strokeWidth = traco.width
+                )
+
+                drawLine(
+                    color = cor,
+                    start = Offset(s * 0.57f, s * 0.78f),
+                    end = Offset(s * 0.84f, s * 0.50f),
+                    strokeWidth = traco.width
+                )
+            }
+        }
     }
 }

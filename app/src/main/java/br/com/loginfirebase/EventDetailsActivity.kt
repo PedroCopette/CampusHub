@@ -6,8 +6,11 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -19,21 +22,28 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import br.com.loginfirebase.ui.theme.LoginFirebaseTheme
 import com.google.firebase.auth.FirebaseAuth
@@ -41,6 +51,13 @@ import com.google.firebase.firestore.FirebaseFirestore
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+
+private val DetailsNavy = Color(0xFF172D59)
+private val DetailsBlue = Color(0xFF2864D7)
+private val DetailsBackground = Color(0xFFF3F7FD)
+private val DetailsText = Color(0xFF24324A)
+private val DetailsMuted = Color(0xFF657694)
+private val DetailsBorder = Color(0xFFE0E9F7)
 
 @OptIn(ExperimentalMaterial3Api::class)
 class EventDetailsActivity : ComponentActivity() {
@@ -89,12 +106,14 @@ class EventDetailsActivity : ComponentActivity() {
             LoginFirebaseTheme {
 
                 Scaffold(
+                    containerColor = DetailsBackground,
                     topBar = {
                         TopAppBar(
                             title = {
                                 Text(
-                                    text = "Detalhes do Evento",
-                                    fontWeight = FontWeight.Bold
+                                    text = "Detalhes do evento",
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White
                                 )
                             },
                             navigationIcon = {
@@ -105,10 +124,16 @@ class EventDetailsActivity : ComponentActivity() {
                                 ) {
                                     Text(
                                         text = "←",
-                                        fontSize = 30.sp
+                                        fontSize = 28.sp,
+                                        color = Color.White
                                     )
                                 }
-                            }
+                            },
+                            colors = TopAppBarDefaults.topAppBarColors(
+                                containerColor = DetailsNavy,
+                                titleContentColor = Color.White,
+                                navigationIconContentColor = Color.White
+                            )
                         )
                     }
                 ) { paddingValues ->
@@ -117,208 +142,203 @@ class EventDetailsActivity : ComponentActivity() {
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(paddingValues)
-                            .padding(horizontal = 24.dp)
-                            .verticalScroll(rememberScrollState()),
-                        horizontalAlignment = Alignment.Start
+                            .background(DetailsBackground)
+                            .verticalScroll(rememberScrollState())
+                            .padding(horizontal = 18.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
 
                         Spacer(
-                            modifier = Modifier.height(20.dp)
+                            modifier = Modifier.height(2.dp)
                         )
 
                         // NOME DO EVENTO
 
-                        Text(
-                            text = nomeEvento,
-                            fontSize = 26.sp,
-                            fontWeight = FontWeight.Bold
-                        )
+                        CartaoDetalhes {
 
-                        Spacer(
-                            modifier = Modifier.height(20.dp)
-                        )
+                            Text(
+                                text = nomeEvento,
+                                color = DetailsNavy,
+                                fontSize = 24.sp,
+                                fontWeight = FontWeight.Bold
+                            )
 
-                        // DATA
-
-                        Text(
-                            text = "Data",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-
-                        Text(
-                            text = dataEvento,
-                            fontSize = 18.sp
-                        )
-
-                        Spacer(
-                            modifier = Modifier.height(14.dp)
-                        )
-
-                        // HORÁRIO
-
-                        Text(
-                            text = "Horário",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-
-                        Text(
-                            text = horarioEvento,
-                            fontSize = 18.sp
-                        )
-
-                        Spacer(
-                            modifier = Modifier.height(14.dp)
-                        )
-
-                        // LOCAL
-
-                        Text(
-                            text = "Local",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-
-                        Text(
-                            text = localEvento,
-                            fontSize = 18.sp
-                        )
-
-                        Spacer(
-                            modifier = Modifier.height(14.dp)
-                        )
-
-                        // ENDEREÇO DO EVENTO
-
-                        Text(
-                            text = "Endereço",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-
-                        Text(
-                            text = enderecoEvento,
-                            fontSize = 16.sp
-                        )
-
-                        Spacer(
-                            modifier = Modifier.height(14.dp)
-                        )
-
-                        // LOCALIZAÇÃO NO MAPA
-
-                        Button(
-                            onClick = {
-                                abrirMapa(localEvento, enderecoEvento)
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Text("VER LOCALIZAÇÃO NO MAPA")
+                            Text(
+                                text = "Informações do evento",
+                                color = DetailsMuted,
+                                fontSize = 14.sp
+                            )
                         }
 
-                        Spacer(
-                            modifier = Modifier.height(10.dp)
-                        )
+                        // INFORMAÇÕES E LOCALIZAÇÃO
 
-                        // FOTOS DO EVENTO
+                        CartaoDetalhes {
 
-                        Button(
-                            onClick = {
+                            Text(
+                                text = "Informações",
+                                color = DetailsNavy,
+                                fontSize = 19.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+
+                            HorizontalDivider(
+                                color = DetailsBorder
+                            )
+
+                            CampoDetalhe(
+                                titulo = "Data",
+                                valor = dataEvento
+                            )
+
+                            CampoDetalhe(
+                                titulo = "Horário",
+                                valor = horarioEvento
+                            )
+
+                            CampoDetalhe(
+                                titulo = "Local",
+                                valor = localEvento
+                            )
+
+                            CampoDetalhe(
+                                titulo = "Endereço",
+                                valor = enderecoEvento
+                            )
+
+                            Button(
+                                onClick = {
+                                    abrirMapa(localEvento, enderecoEvento)
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(50.dp),
+                                shape = RoundedCornerShape(14.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = DetailsBlue,
+                                    contentColor = Color.White
+                                )
+                            ) {
+                                Text(
+                                    text = "VER LOCALIZAÇÃO NO MAPA",
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+                        }
+
+                        // FOTOS, ÁUDIOS E VÍDEOS
+
+                        CartaoDetalhes {
+
+                            Text(
+                                text = "Materiais do evento",
+                                color = DetailsNavy,
+                                fontSize = 19.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+
+                            Text(
+                                text = "Fotos, áudios e vídeos publicados para este evento.",
+                                color = DetailsMuted,
+                                fontSize = 13.sp
+                            )
+
+                            BotaoMaterial(
+                                texto = "FOTOS DO EVENTO"
+                            ) {
+
                                 val intentFotos = Intent(
                                     this@EventDetailsActivity,
                                     EventPhotosActivity::class.java
                                 )
 
-                                intentFotos.putExtra("idEvento", idEvento)
-                                intentFotos.putExtra("nomeEvento", nomeEvento)
+                                intentFotos.putExtra(
+                                    "idEvento",
+                                    idEvento
+                                )
+
+                                intentFotos.putExtra(
+                                    "nomeEvento",
+                                    nomeEvento
+                                )
 
                                 startActivity(intentFotos)
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Text("FOTOS DO EVENTO")
-                        }
+                            }
 
-                        Spacer(
-                            modifier = Modifier.height(10.dp)
-                        )
+                            BotaoMaterial(
+                                texto = "ÁUDIOS DO EVENTO"
+                            ) {
 
-                        // ÁUDIOS DO EVENTO
-
-                        Button(
-                            onClick = {
                                 val intentAudios = Intent(
                                     this@EventDetailsActivity,
                                     EventAudioActivity::class.java
                                 )
 
-                                intentAudios.putExtra("idEvento", idEvento)
-                                intentAudios.putExtra("nomeEvento", nomeEvento)
+                                intentAudios.putExtra(
+                                    "idEvento",
+                                    idEvento
+                                )
+
+                                intentAudios.putExtra(
+                                    "nomeEvento",
+                                    nomeEvento
+                                )
 
                                 startActivity(intentAudios)
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Text("ÁUDIOS DO EVENTO")
-                        }
+                            }
 
-                        Spacer(
-                            modifier = Modifier.height(10.dp)
-                        )
+                            BotaoMaterial(
+                                texto = "VÍDEOS DO EVENTO"
+                            ) {
 
-                        // VÍDEOS DO EVENTO
-
-                        Button(
-                            onClick = {
                                 val intentVideos = Intent(
                                     this@EventDetailsActivity,
                                     EventVideoActivity::class.java
                                 )
 
-                                intentVideos.putExtra("idEvento", idEvento)
-                                intentVideos.putExtra("nomeEvento", nomeEvento)
+                                intentVideos.putExtra(
+                                    "idEvento",
+                                    idEvento
+                                )
+
+                                intentVideos.putExtra(
+                                    "nomeEvento",
+                                    nomeEvento
+                                )
 
                                 startActivity(intentVideos)
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Text("VÍDEOS DO EVENTO")
+                            }
                         }
-
-                        Spacer(
-                            modifier = Modifier.height(20.dp)
-                        )
-
-                        HorizontalDivider()
-
-                        Spacer(
-                            modifier = Modifier.height(20.dp)
-                        )
 
                         // DESCRIÇÃO
 
-                        Text(
-                            text = descricaoEvento,
-                            fontSize = 17.sp,
-                            lineHeight = 25.sp
-                        )
+                        CartaoDetalhes {
 
-                        Spacer(
-                            modifier = Modifier.height(25.dp)
-                        )
+                            Text(
+                                text = "Sobre o evento",
+                                color = DetailsNavy,
+                                fontSize = 19.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+
+                            Text(
+                                text = descricaoEvento,
+                                color = DetailsText,
+                                fontSize = 15.sp,
+                                lineHeight = 23.sp
+                            )
+                        }
 
                         // INSCRIÇÃO
 
                         Button(
                             onClick = {
+
                                 if (inscrito) {
+
                                     cancelarInscricao(idEvento)
+
                                 } else {
+
                                     fazerInscricao(
                                         idEvento,
                                         nomeEvento,
@@ -328,29 +348,37 @@ class EventDetailsActivity : ComponentActivity() {
                                     )
                                 }
                             },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp)
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(52.dp),
+                            shape = RoundedCornerShape(15.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = DetailsNavy,
+                                contentColor = Color.White
+                            )
                         ) {
+
                             Text(
                                 text = if (inscrito) {
                                     "CANCELAR INSCRIÇÃO"
                                 } else {
                                     "INSCREVER-SE"
-                                }
+                                },
+                                fontWeight = FontWeight.Bold
                             )
                         }
-
-                        Spacer(
-                            modifier = Modifier.height(10.dp)
-                        )
 
                         // FAVORITOS
 
                         OutlinedButton(
                             onClick = {
+
                                 if (favorito) {
+
                                     removerFavorito(idEvento)
+
                                 } else {
+
                                     adicionarFavorito(
                                         idEvento,
                                         nomeEvento,
@@ -360,313 +388,332 @@ class EventDetailsActivity : ComponentActivity() {
                                     )
                                 }
                             },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp)
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(50.dp),
+                            shape = RoundedCornerShape(15.dp),
+                            border = BorderStroke(
+                                1.dp,
+                                DetailsBlue
+                            ),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = DetailsBlue
+                            )
                         ) {
+
                             Text(
                                 text = if (favorito) {
-                                    "★  REMOVER DOS FAVORITOS"
+                                    "REMOVER DOS FAVORITOS"
                                 } else {
-                                    "☆  ADICIONAR AOS FAVORITOS"
-                                }
+                                    "ADICIONAR AOS FAVORITOS"
+                                },
+                                fontWeight = FontWeight.SemiBold
                             )
                         }
-
-                        Spacer(
-                            modifier = Modifier.height(30.dp)
-                        )
-
-                        HorizontalDivider()
-
-                        Spacer(
-                            modifier = Modifier.height(25.dp)
-                        )
 
                         // AVALIAÇÕES
 
-                        Text(
-                            text = "Avaliação do evento",
-                            fontSize = 21.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-
-                        Spacer(
-                            modifier = Modifier.height(12.dp)
-                        )
-
-                        if (mediaAvaliacoes > 0) {
-                            Text(
-                                text = "Média %.1f ⭐  •  %d avaliações".format(
-                                    mediaAvaliacoes,
-                                    quantidadeAvaliacoes
-                                ),
-                                fontSize = 16.sp
-                            )
-                        } else {
-                            Text(
-                                text = "Ainda não existem avaliações.",
-                                fontSize = 16.sp
-                            )
-                        }
-
-                        Spacer(
-                            modifier = Modifier.height(20.dp)
-                        )
-
-                        // USUÁRIO PODE AVALIAR
-
-                        if (eventoEncerrado && inscrito) {
+                        CartaoDetalhes {
 
                             Text(
-                                text = "Sua avaliação",
-                                fontSize = 16.sp,
+                                text = "Avaliações",
+                                color = DetailsNavy,
+                                fontSize = 19.sp,
                                 fontWeight = FontWeight.Bold
                             )
 
-                            Spacer(
-                                modifier = Modifier.height(5.dp)
-                            )
+                            if (mediaAvaliacoes > 0) {
 
-                            Text(
-                                text = if (notaSelecionada == 0) {
-                                    "Escolha uma nota"
-                                } else {
-                                    "Nota selecionada: $notaSelecionada ⭐"
-                                },
-                                fontSize = 15.sp
-                            )
+                                Text(
+                                    text = "Média %.1f · %d avaliações".format(
+                                        mediaAvaliacoes,
+                                        quantidadeAvaliacoes
+                                    ),
+                                    color = DetailsText,
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
 
-                            Spacer(
-                                modifier = Modifier.height(10.dp)
-                            )
+                            } else {
 
-                            // ESTRELAS
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.Center,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                for (i in 1..5) {
-                                    TextButton(
-                                        onClick = {
-                                            notaSelecionada = i
-                                        }
-                                    ) {
-                                        Text(
-                                            text = if (i <= notaSelecionada) {
-                                                "★"
-                                            } else {
-                                                "☆"
-                                            },
-                                            fontSize = 34.sp
-                                        )
-                                    }
-                                }
+                                Text(
+                                    text = "Ainda não existem avaliações.",
+                                    color = DetailsMuted,
+                                    fontSize = 14.sp
+                                )
                             }
 
-                            Spacer(
-                                modifier = Modifier.height(5.dp)
+                            if (eventoEncerrado && inscrito) {
+
+                                HorizontalDivider(
+                                    color = DetailsBorder
+                                )
+
+                                Text(
+                                    text = "Sua avaliação",
+                                    color = DetailsText,
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+
+                                Text(
+                                    text = if (notaSelecionada == 0) {
+                                        "Escolha uma nota de 1 a 5"
+                                    } else {
+                                        "Nota selecionada: $notaSelecionada"
+                                    },
+                                    color = DetailsMuted,
+                                    fontSize = 14.sp
+                                )
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.Center,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+
+                                    for (i in 1..5) {
+
+                                        TextButton(
+                                            onClick = {
+                                                notaSelecionada = i
+                                            }
+                                        ) {
+
+                                            Text(
+                                                text = if (i <= notaSelecionada) {
+                                                    "★"
+                                                } else {
+                                                    "☆"
+                                                },
+                                                color = if (i <= notaSelecionada) {
+                                                    Color(0xFFE0A020)
+                                                } else {
+                                                    DetailsMuted
+                                                },
+                                                fontSize = 31.sp
+                                            )
+                                        }
+                                    }
+                                }
+
+                                Button(
+                                    onClick = {
+                                        salvarAvaliacao(idEvento)
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(14.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = DetailsBlue,
+                                        contentColor = Color.White
+                                    )
+                                ) {
+
+                                    Text(
+                                        text = if (notaUsuario == 0) {
+                                            "AVALIAR EVENTO"
+                                        } else {
+                                            "ALTERAR AVALIAÇÃO"
+                                        }
+                                    )
+                                }
+
+                            } else if (!eventoEncerrado) {
+
+                                Text(
+                                    text = "A avaliação fica disponível após o encerramento do evento.",
+                                    color = DetailsMuted,
+                                    fontSize = 14.sp
+                                )
+
+                            } else {
+
+                                Text(
+                                    text = "Somente alunos inscritos podem avaliar este evento.",
+                                    color = DetailsMuted,
+                                    fontSize = 14.sp
+                                )
+                            }
+                        }
+
+                        // COMENTÁRIOS
+
+                        CartaoDetalhes {
+
+                            Text(
+                                text = "Comentários",
+                                color = DetailsNavy,
+                                fontSize = 19.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+
+                            OutlinedTextField(
+                                value = textoComentario,
+                                onValueChange = {
+                                    textoComentario = it
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                label = {
+                                    Text(
+                                        if (comentarioEditandoId == null) {
+                                            "Escreva um comentário"
+                                        } else {
+                                            "Editar comentário"
+                                        }
+                                    )
+                                },
+                                shape = RoundedCornerShape(14.dp),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = DetailsBlue,
+                                    unfocusedBorderColor = DetailsBorder,
+                                    focusedLabelColor = DetailsBlue,
+                                    cursorColor = DetailsBlue,
+                                    focusedContainerColor = Color.White,
+                                    unfocusedContainerColor = Color.White
+                                )
                             )
 
                             Button(
                                 onClick = {
-                                    salvarAvaliacao(idEvento)
-                                },
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(12.dp)
-                            ) {
-                                Text(
-                                    text = if (notaUsuario == 0) {
-                                        "AVALIAR EVENTO"
-                                    } else {
-                                        "ALTERAR AVALIAÇÃO"
-                                    }
-                                )
-                            }
 
-                        } else if (!eventoEncerrado) {
+                                    if (comentarioEditandoId == null) {
 
-                            Text(
-                                text = "A avaliação estará disponível após o encerramento do evento.",
-                                fontSize = 15.sp
-                            )
-
-                        } else {
-
-                            Text(
-                                text = "Somente alunos inscritos podem avaliar este evento.",
-                                fontSize = 15.sp
-                            )
-                        }
-
-                        Spacer(
-                            modifier = Modifier.height(30.dp)
-                        )
-
-                        HorizontalDivider()
-
-                        Spacer(
-                            modifier = Modifier.height(25.dp)
-                        )
-
-                        // COMENTÁRIOS
-
-                        Text(
-                            text = "Comentários",
-                            fontSize = 21.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-
-                        Spacer(
-                            modifier = Modifier.height(15.dp)
-                        )
-
-                        OutlinedTextField(
-                            value = textoComentario,
-                            onValueChange = {
-                                textoComentario = it
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            label = {
-                                Text(
-                                    text = if (comentarioEditandoId == null) {
-                                        "Digite seu comentário"
-                                    } else {
-                                        "Editando comentário"
-                                    }
-                                )
-                            }
-                        )
-
-                        Spacer(
-                            modifier = Modifier.height(10.dp)
-                        )
-
-                        Button(
-                            onClick = {
-                                if (comentarioEditandoId == null) {
-                                    publicarComentario(
-                                        idEvento,
-                                        nomeEvento
-                                    )
-                                } else {
-                                    editarComentario()
-                                }
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Text(
-                                text = if (comentarioEditandoId == null) {
-                                    "PUBLICAR COMENTÁRIO"
-                                } else {
-                                    "SALVAR EDIÇÃO"
-                                }
-                            )
-                        }
-
-                        if (comentarioEditandoId != null) {
-                            Spacer(
-                                modifier = Modifier.height(5.dp)
-                            )
-
-                            TextButton(
-                                onClick = {
-                                    textoComentario = ""
-                                    comentarioEditandoId = null
-                                },
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text("CANCELAR EDIÇÃO")
-                            }
-                        }
-
-                        Spacer(
-                            modifier = Modifier.height(20.dp)
-                        )
-
-                        if (comentarios.isEmpty()) {
-
-                            Text(
-                                text = "Ainda não existem comentários.",
-                                fontSize = 15.sp
-                            )
-
-                        } else {
-
-                            comentarios.forEach { comentario ->
-
-                                Text(
-                                    text = "Autor: ${comentario.autorNome}",
-                                    fontWeight = FontWeight.Bold
-                                )
-
-                                Spacer(
-                                    modifier = Modifier.height(4.dp)
-                                )
-
-                                Text(
-                                    text = "Data: ${comentario.dataPublicacao}",
-                                    fontSize = 13.sp
-                                )
-
-                                Spacer(
-                                    modifier = Modifier.height(6.dp)
-                                )
-
-                                Text(
-                                    text = comentario.texto,
-                                    fontSize = 16.sp
-                                )
-
-                                if (comentario.usuarioId == auth.currentUser?.uid) {
-
-                                    Spacer(
-                                        modifier = Modifier.height(8.dp)
-                                    )
-
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-
-                                        TextButton(
-                                            onClick = {
-                                                textoComentario = comentario.texto
-                                                comentarioEditandoId = comentario.id
-                                            }
-                                        ) {
-                                            Text("EDITAR")
-                                        }
-
-                                        Spacer(
-                                            modifier = Modifier.width(8.dp)
+                                        publicarComentario(
+                                            idEvento,
+                                            nomeEvento
                                         )
 
-                                        TextButton(
-                                            onClick = {
-                                                excluirComentario(comentario.id)
-                                            }
+                                    } else {
+
+                                        editarComentario()
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(14.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = DetailsBlue,
+                                    contentColor = Color.White
+                                )
+                            ) {
+
+                                Text(
+                                    text = if (comentarioEditandoId == null) {
+                                        "PUBLICAR COMENTÁRIO"
+                                    } else {
+                                        "SALVAR EDIÇÃO"
+                                    }
+                                )
+                            }
+
+                            if (comentarioEditandoId != null) {
+
+                                TextButton(
+                                    onClick = {
+                                        textoComentario = ""
+                                        comentarioEditandoId = null
+                                    },
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(
+                                        text = "CANCELAR EDIÇÃO",
+                                        color = DetailsBlue
+                                    )
+                                }
+                            }
+
+                            HorizontalDivider(
+                                color = DetailsBorder
+                            )
+
+                            if (comentarios.isEmpty()) {
+
+                                Text(
+                                    text = "Ainda não existem comentários.",
+                                    color = DetailsMuted,
+                                    fontSize = 14.sp
+                                )
+
+                            } else {
+
+                                comentarios.forEach { comentario ->
+
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .background(
+                                                color = DetailsBackground,
+                                                shape = RoundedCornerShape(14.dp)
+                                            )
+                                            .padding(13.dp),
+                                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+
+                                        Text(
+                                            text = comentario.autorNome,
+                                            color = DetailsNavy,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 14.sp
+                                        )
+
+                                        Text(
+                                            text = comentario.dataPublicacao,
+                                            color = DetailsMuted,
+                                            fontSize = 12.sp
+                                        )
+
+                                        Text(
+                                            text = comentario.texto,
+                                            color = DetailsText,
+                                            fontSize = 14.sp
+                                        )
+
+                                        if (
+                                            comentario.usuarioId ==
+                                            auth.currentUser?.uid
                                         ) {
-                                            Text("EXCLUIR")
+
+                                            Row(
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                            ) {
+
+                                                TextButton(
+                                                    onClick = {
+                                                        textoComentario =
+                                                            comentario.texto
+
+                                                        comentarioEditandoId =
+                                                            comentario.id
+                                                    }
+                                                ) {
+
+                                                    Text(
+                                                        text = "EDITAR",
+                                                        color = DetailsBlue
+                                                    )
+                                                }
+
+                                                TextButton(
+                                                    onClick = {
+                                                        excluirComentario(
+                                                            comentario.id
+                                                        )
+                                                    }
+                                                ) {
+
+                                                    Text(
+                                                        text = "EXCLUIR",
+                                                        color = Color(0xFFBD3333)
+                                                    )
+                                                }
+                                            }
                                         }
                                     }
                                 }
-
-                                Spacer(
-                                    modifier = Modifier.height(20.dp)
-                                )
-
-                                HorizontalDivider()
-
-                                Spacer(
-                                    modifier = Modifier.height(20.dp)
-                                )
                             }
                         }
 
                         Spacer(
-                            modifier = Modifier.height(20.dp)
+                            modifier = Modifier.height(8.dp)
                         )
                     }
                 }
@@ -700,11 +747,13 @@ class EventDetailsActivity : ComponentActivity() {
         val usuario = auth.currentUser
 
         if (usuario == null) {
+
             Toast.makeText(
                 this,
                 "Faça login para se inscrever.",
                 Toast.LENGTH_SHORT
             ).show()
+
             return
         }
 
@@ -724,6 +773,7 @@ class EventDetailsActivity : ComponentActivity() {
             .document(idInscricao)
             .set(dados)
             .addOnSuccessListener {
+
                 inscrito = true
 
                 Toast.makeText(
@@ -733,6 +783,7 @@ class EventDetailsActivity : ComponentActivity() {
                 ).show()
             }
             .addOnFailureListener {
+
                 Toast.makeText(
                     this,
                     "Erro ao realizar inscrição.",
@@ -750,6 +801,7 @@ class EventDetailsActivity : ComponentActivity() {
             .document(idInscricao)
             .delete()
             .addOnSuccessListener {
+
                 inscrito = false
 
                 Toast.makeText(
@@ -759,6 +811,7 @@ class EventDetailsActivity : ComponentActivity() {
                 ).show()
             }
             .addOnFailureListener {
+
                 Toast.makeText(
                     this,
                     "Erro ao cancelar inscrição.",
@@ -793,11 +846,13 @@ class EventDetailsActivity : ComponentActivity() {
         val usuario = auth.currentUser
 
         if (usuario == null) {
+
             Toast.makeText(
                 this,
                 "Faça login para favoritar eventos.",
                 Toast.LENGTH_SHORT
             ).show()
+
             return
         }
 
@@ -817,6 +872,7 @@ class EventDetailsActivity : ComponentActivity() {
             .document(idFavorito)
             .set(dados)
             .addOnSuccessListener {
+
                 favorito = true
 
                 Toast.makeText(
@@ -826,6 +882,7 @@ class EventDetailsActivity : ComponentActivity() {
                 ).show()
             }
             .addOnFailureListener {
+
                 Toast.makeText(
                     this,
                     "Erro ao adicionar aos favoritos.",
@@ -843,6 +900,7 @@ class EventDetailsActivity : ComponentActivity() {
             .document(idFavorito)
             .delete()
             .addOnSuccessListener {
+
                 favorito = false
 
                 Toast.makeText(
@@ -852,6 +910,7 @@ class EventDetailsActivity : ComponentActivity() {
                 ).show()
             }
             .addOnFailureListener {
+
                 Toast.makeText(
                     this,
                     "Erro ao remover dos favoritos.",
@@ -870,22 +929,26 @@ class EventDetailsActivity : ComponentActivity() {
         val usuario = auth.currentUser
 
         if (usuario == null) {
+
             Toast.makeText(
                 this,
                 "Faça login para comentar.",
                 Toast.LENGTH_SHORT
             ).show()
+
             return
         }
 
         val texto = textoComentario.trim()
 
         if (texto.isEmpty()) {
+
             Toast.makeText(
                 this,
                 "Digite um comentário.",
                 Toast.LENGTH_SHORT
             ).show()
+
             return
         }
 
@@ -915,6 +978,7 @@ class EventDetailsActivity : ComponentActivity() {
             .document(comentarioId)
             .set(dados)
             .addOnSuccessListener {
+
                 textoComentario = ""
 
                 Toast.makeText(
@@ -926,6 +990,7 @@ class EventDetailsActivity : ComponentActivity() {
                 carregarComentarios(idEvento)
             }
             .addOnFailureListener {
+
                 Toast.makeText(
                     this,
                     "Erro ao publicar comentário.",
@@ -947,7 +1012,8 @@ class EventDetailsActivity : ComponentActivity() {
                     val texto = documento.getString("texto")
                     val usuarioId = documento.getString("usuarioId")
                     val autorNome = documento.getString("autorNome")
-                    val dataPublicacao = documento.getString("dataPublicacao")
+                    val dataPublicacao =
+                        documento.getString("dataPublicacao")
 
                     if (
                         texto != null &&
@@ -955,6 +1021,7 @@ class EventDetailsActivity : ComponentActivity() {
                         autorNome != null &&
                         dataPublicacao != null
                     ) {
+
                         Comentario(
                             id = id,
                             texto = texto,
@@ -962,6 +1029,7 @@ class EventDetailsActivity : ComponentActivity() {
                             autorNome = autorNome,
                             dataPublicacao = dataPublicacao
                         )
+
                     } else {
                         null
                     }
@@ -977,11 +1045,13 @@ class EventDetailsActivity : ComponentActivity() {
         val texto = textoComentario.trim()
 
         if (texto.isEmpty()) {
+
             Toast.makeText(
                 this,
                 "Digite um comentário.",
                 Toast.LENGTH_SHORT
             ).show()
+
             return
         }
 
@@ -989,6 +1059,7 @@ class EventDetailsActivity : ComponentActivity() {
             .document(idComentario)
             .update("texto", texto)
             .addOnSuccessListener {
+
                 textoComentario = ""
                 comentarioEditandoId = null
 
@@ -998,10 +1069,13 @@ class EventDetailsActivity : ComponentActivity() {
                     Toast.LENGTH_SHORT
                 ).show()
 
-                val idEvento = intent.getStringExtra("idEvento") ?: ""
+                val idEvento =
+                    intent.getStringExtra("idEvento") ?: ""
+
                 carregarComentarios(idEvento)
             }
             .addOnFailureListener {
+
                 Toast.makeText(
                     this,
                     "Erro ao editar comentário.",
@@ -1016,16 +1090,20 @@ class EventDetailsActivity : ComponentActivity() {
             .document(idComentario)
             .delete()
             .addOnSuccessListener {
+
                 Toast.makeText(
                     this,
                     "Comentário excluído!",
                     Toast.LENGTH_SHORT
                 ).show()
 
-                val idEvento = intent.getStringExtra("idEvento") ?: ""
+                val idEvento =
+                    intent.getStringExtra("idEvento") ?: ""
+
                 carregarComentarios(idEvento)
             }
             .addOnFailureListener {
+
                 Toast.makeText(
                     this,
                     "Erro ao excluir comentário.",
@@ -1042,6 +1120,7 @@ class EventDetailsActivity : ComponentActivity() {
     ) {
 
         try {
+
             val formato = SimpleDateFormat(
                 "dd/MM/yyyy HH:mm",
                 Locale.getDefault()
@@ -1055,6 +1134,7 @@ class EventDetailsActivity : ComponentActivity() {
             }
 
         } catch (e: Exception) {
+
             eventoEncerrado = false
         }
     }
@@ -1070,7 +1150,9 @@ class EventDetailsActivity : ComponentActivity() {
             .addOnSuccessListener { documento ->
 
                 if (documento.exists()) {
+
                     val nota = documento.getLong("nota")?.toInt() ?: 0
+
                     notaUsuario = nota
                     notaSelecionada = nota
                 }
@@ -1082,38 +1164,46 @@ class EventDetailsActivity : ComponentActivity() {
         val usuario = auth.currentUser
 
         if (usuario == null) {
+
             Toast.makeText(
                 this,
                 "Faça login para avaliar.",
                 Toast.LENGTH_SHORT
             ).show()
+
             return
         }
 
         if (!inscrito) {
+
             Toast.makeText(
                 this,
                 "Você precisa estar inscrito no evento.",
                 Toast.LENGTH_SHORT
             ).show()
+
             return
         }
 
         if (!eventoEncerrado) {
+
             Toast.makeText(
                 this,
                 "O evento ainda não foi encerrado.",
                 Toast.LENGTH_SHORT
             ).show()
+
             return
         }
 
         if (notaSelecionada !in 1..5) {
+
             Toast.makeText(
                 this,
                 "Selecione uma nota de 1 a 5.",
                 Toast.LENGTH_SHORT
             ).show()
+
             return
         }
 
@@ -1130,6 +1220,7 @@ class EventDetailsActivity : ComponentActivity() {
             .document(idAvaliacao)
             .set(dados)
             .addOnSuccessListener {
+
                 notaUsuario = notaSelecionada
 
                 Toast.makeText(
@@ -1141,6 +1232,7 @@ class EventDetailsActivity : ComponentActivity() {
                 carregarMediaAvaliacoes(idEvento)
             }
             .addOnFailureListener {
+
                 Toast.makeText(
                     this,
                     "Erro ao salvar avaliação.",
@@ -1157,8 +1249,10 @@ class EventDetailsActivity : ComponentActivity() {
             .addOnSuccessListener { resultado ->
 
                 if (resultado.isEmpty) {
+
                     mediaAvaliacoes = 0.0
                     quantidadeAvaliacoes = 0
+
                     return@addOnSuccessListener
                 }
 
@@ -1167,13 +1261,14 @@ class EventDetailsActivity : ComponentActivity() {
                 }
 
                 if (notas.isNotEmpty()) {
+
                     mediaAvaliacoes = notas.average()
                     quantidadeAvaliacoes = notas.size
                 }
             }
     }
 
-    // LOCALIZAÇÃO NO GOOGLE MAPS
+    // GOOGLE MAPS
 
     private fun abrirMapa(
         local: String,
@@ -1200,19 +1295,107 @@ class EventDetailsActivity : ComponentActivity() {
         )
 
         try {
+
             startActivity(
                 Intent(
                     Intent.ACTION_VIEW,
                     uriRota
                 )
             )
+
         } catch (e: Exception) {
+
             Toast.makeText(
                 this,
                 "Não foi possível abrir o Google Maps.",
                 Toast.LENGTH_SHORT
             ).show()
         }
+    }
+}
+
+@Composable
+private fun CartaoDetalhes(
+    content: @Composable ColumnScope.() -> Unit
+) {
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(22.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        ),
+        border = BorderStroke(
+            1.dp,
+            DetailsBorder
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 2.dp
+        )
+    ) {
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            content = content
+        )
+    }
+}
+
+@Composable
+private fun CampoDetalhe(
+    titulo: String,
+    valor: String
+) {
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(3.dp)
+    ) {
+
+        Text(
+            text = titulo,
+            color = DetailsMuted,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Medium
+        )
+
+        Text(
+            text = valor,
+            color = DetailsText,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.SemiBold
+        )
+    }
+}
+
+@Composable
+private fun BotaoMaterial(
+    texto: String,
+    onClick: () -> Unit
+) {
+
+    OutlinedButton(
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(48.dp),
+        shape = RoundedCornerShape(14.dp),
+        border = BorderStroke(
+            1.dp,
+            DetailsBorder
+        ),
+        colors = ButtonDefaults.outlinedButtonColors(
+            contentColor = DetailsBlue
+        )
+    ) {
+
+        Text(
+            text = texto,
+            fontWeight = FontWeight.SemiBold
+        )
     }
 }
 

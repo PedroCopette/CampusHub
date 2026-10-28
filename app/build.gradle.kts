@@ -1,8 +1,9 @@
+kotlin
 plugins {
-
     id("com.google.gms.google-services")
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    jacoco
 }
 
 android {
@@ -19,10 +20,15 @@ android {
         versionCode = 1
         versionName = "1.0"
 
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner =
+            "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
+        debug {
+            enableUnitTestCoverage = true
+        }
+
         release {
             optimization {
                 enable = false
@@ -41,7 +47,6 @@ android {
 }
 
 dependencies {
-
     implementation(platform("com.google.firebase:firebase-bom:34.19.0"))
 
     implementation("com.google.firebase:firebase-analytics")
