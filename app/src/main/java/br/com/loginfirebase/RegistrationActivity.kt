@@ -89,11 +89,7 @@ class RegistrationActivity : ComponentActivity() {
         val emailFinal = email.trim()
         val senhaFinal = senha.trim()
 
-        if (
-            nomeFinal.isEmpty() ||
-            emailFinal.isEmpty() ||
-            senhaFinal.isEmpty()
-        ) {
+        if (!CadastroValidator.camposPreenchidos(nomeFinal, emailFinal, senhaFinal)) {
             Toast.makeText(
                 this,
                 "Preencha todos os campos.",
@@ -103,7 +99,7 @@ class RegistrationActivity : ComponentActivity() {
             return
         }
 
-        if (senhaFinal.length < 6) {
+        if (!CadastroValidator.senhaValida(senhaFinal)) {
             Toast.makeText(
                 this,
                 "A senha deve ter pelo menos 6 caracteres.",
@@ -201,7 +197,6 @@ fun TelaCadastro(
             .verticalScroll(rememberScrollState())
     ) {
 
-        // Cabeçalho azul
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -294,7 +289,6 @@ fun TelaCadastro(
             }
         }
 
-        // Formulário de cadastro
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -343,7 +337,6 @@ fun TelaCadastro(
                         .padding(20.dp)
                 ) {
 
-                    // Nome
                     Text(
                         text = "NOME COMPLETO",
                         color = RegistrationMuted,
@@ -386,7 +379,6 @@ fun TelaCadastro(
                         modifier = Modifier.height(18.dp)
                     )
 
-                    // E-mail
                     Text(
                         text = "E-MAIL",
                         color = RegistrationMuted,
@@ -430,7 +422,6 @@ fun TelaCadastro(
                         modifier = Modifier.height(18.dp)
                     )
 
-                    // Senha
                     Text(
                         text = "SENHA",
                         color = RegistrationMuted,
@@ -475,7 +466,6 @@ fun TelaCadastro(
                         modifier = Modifier.height(24.dp)
                     )
 
-                    // Registrar
                     Button(
                         onClick = {
                             registrar(nome, email, senha)
@@ -501,7 +491,6 @@ fun TelaCadastro(
                         modifier = Modifier.height(12.dp)
                     )
 
-                    // Voltar
                     Button(
                         onClick = {
                             voltar()
