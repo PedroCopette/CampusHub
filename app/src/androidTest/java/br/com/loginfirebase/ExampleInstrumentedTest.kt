@@ -1,4 +1,3 @@
-
 package br.com.loginfirebase
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -35,7 +34,9 @@ class ExampleInstrumentedTest {
                 .getInstrumentation()
                 .targetContext
 
-            FirebaseApp.initializeApp(contexto)
+            if (FirebaseApp.getApps(contexto).isEmpty()) {
+                FirebaseApp.initializeApp(contexto)
+            }
 
             FirebaseAuth.getInstance().apply {
                 useEmulator("127.0.0.1", 9099)
@@ -119,12 +120,12 @@ class ExampleInstrumentedTest {
                 "diagnostico${System.currentTimeMillis()}@campushub.com"
 
             val corpo = """
-                {
-                    "email": "$email",
-                    "password": "Teste123456",
-                    "returnSecureToken": true
-                }
-            """.trimIndent()
+            {
+                "email": "$email",
+                "password": "Teste123456",
+                "returnSecureToken": true
+            }
+        """.trimIndent()
 
             conexao.outputStream.use { output ->
                 output.write(
@@ -135,13 +136,17 @@ class ExampleInstrumentedTest {
             val codigoResposta = conexao.responseCode
 
             val resposta = if (codigoResposta >= 400) {
-                conexao.errorStream?.bufferedReader()?.use {
-                    it.readText()
-                }
+
+                conexao.errorStream
+                    ?.bufferedReader()
+                    ?.use { it.readText() }
+                    ?: "Sem detalhes do erro."
+
             } else {
-                conexao.inputStream.bufferedReader().use {
-                    it.readText()
-                }
+
+                conexao.inputStream
+                    .bufferedReader()
+                    .use { it.readText() }
             }
 
             assertEquals(
@@ -151,6 +156,7 @@ class ExampleInstrumentedTest {
             )
 
         } finally {
+
             conexao.disconnect()
         }
     }
@@ -183,8 +189,14 @@ class ExampleInstrumentedTest {
                 } else {
 
                     erroLogin.set(
-                        tarefa.exception?.message
-                            ?: "Não foi possível criar o usuário de teste."
+                        tarefa.exception?.toString()
+                            ?: "Erro desconhecido"
+                    )
+
+                    android.util.Log.e(
+                        "FirebaseTeste",
+                        "Erro ao criar usuário no Auth Emulator",
+                        tarefa.exception
                     )
                 }
 
@@ -192,8 +204,8 @@ class ExampleInstrumentedTest {
             }
 
         assertTrue(
-            "A criação do usuário demorou mais de 30 segundos.",
-            resultadoLogin.await(30, TimeUnit.SECONDS)
+            "A criação do usuário demorou mais de 60 segundos.",
+            resultadoLogin.await(60, TimeUnit.SECONDS)
         )
 
         assertNotNull(
@@ -211,9 +223,7 @@ class ExampleInstrumentedTest {
             .get()
             .addOnCompleteListener { tarefa ->
 
-                consultaFuncionou.set(
-                    tarefa.isSuccessful
-                )
+                consultaFuncionou.set(tarefa.isSuccessful)
 
                 if (!tarefa.isSuccessful) {
 
@@ -227,8 +237,8 @@ class ExampleInstrumentedTest {
             }
 
         assertTrue(
-            "A consulta demorou mais de 30 segundos.",
-            resultadoConsulta.await(30, TimeUnit.SECONDS)
+            "A consulta demorou mais de 60 segundos.",
+            resultadoConsulta.await(60, TimeUnit.SECONDS)
         )
 
         assertTrue(

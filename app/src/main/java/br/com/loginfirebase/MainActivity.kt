@@ -99,7 +99,7 @@ class MainActivity : ComponentActivity() {
         val emailFinal = email.trim()
         val senhaFinal = senha.trim()
 
-        if (emailFinal.isEmpty() || senhaFinal.isEmpty()) {
+        if (!CadastroValidator.loginCamposPreenchidos(emailFinal, senhaFinal)) {
             Toast.makeText(
                 this,
                 "Preencha o e-mail e a senha.",

@@ -56,9 +56,6 @@ import androidx.compose.ui.unit.sp
 import br.com.loginfirebase.ui.theme.LoginFirebaseTheme
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 private val EventsNavy = Color(0xFF172D59)
 private val EventsBlue = Color(0xFF2864D7)
@@ -117,36 +114,12 @@ class EventsActivity : ComponentActivity() {
                     mutableStateOf(false)
                 }
 
-                val eventosFiltrados = eventosCarregados.filter { evento ->
-
-                    val correspondeBusca = evento.nome.contains(
-                        busca,
-                        ignoreCase = true
-                    )
-
-                    val correspondeCategoria =
-                        categoriaSelecionada == "Todas" ||
-                                evento.categoria == categoriaSelecionada
-
-                    val correspondeSituacao =
-                        when (situacaoSelecionada) {
-                            "Próximos" -> !eventoEncerrado(
-                                evento.data,
-                                evento.horario
-                            )
-
-                            "Encerrados" -> eventoEncerrado(
-                                evento.data,
-                                evento.horario
-                            )
-
-                            else -> true
-                        }
-
-                    correspondeBusca &&
-                            correspondeCategoria &&
-                            correspondeSituacao
-                }
+                val eventosFiltrados = EventosUtils.filtrarEventos(
+                    eventos = eventosCarregados,
+                    busca = busca,
+                    categoriaSelecionada = categoriaSelecionada,
+                    situacaoSelecionada = situacaoSelecionada
+                )
 
                 Column(
                     modifier = Modifier
@@ -343,7 +316,6 @@ class EventsActivity : ComponentActivity() {
                         Spacer(
                             modifier = Modifier.height(14.dp)
                         )
-
                         when {
 
                             carregandoEventos -> {
@@ -437,7 +409,7 @@ class EventsActivity : ComponentActivity() {
 
                                     CartaoEvento(
                                         evento = evento,
-                                        encerrado = eventoEncerrado(
+                                        encerrado = EventosUtils.eventoEncerrado(
                                             evento.data,
                                             evento.horario
                                         ),
@@ -644,7 +616,6 @@ class EventsActivity : ComponentActivity() {
                 mostrarErroAoCarregar()
             }
     }
-
     private fun carregarEventosDoBanco() {
 
         db.collection("eventos")
@@ -688,7 +659,7 @@ class EventsActivity : ComponentActivity() {
                     }
 
                 }.sortedBy { evento ->
-                    ordenarData(evento.data)
+                    EventosUtils.ordenarData(evento.data)
                 }
 
                 eventosCarregados = lista
@@ -701,21 +672,6 @@ class EventsActivity : ComponentActivity() {
             }
     }
 
-    private fun ordenarData(data: String): Long {
-
-        return try {
-
-            SimpleDateFormat(
-                "dd/MM/yyyy",
-                Locale.getDefault()
-            ).parse(data)?.time ?: Long.MAX_VALUE
-
-        } catch (e: Exception) {
-
-            Long.MAX_VALUE
-        }
-    }
-
     private fun mostrarErroAoCarregar() {
 
         carregandoEventos = false
@@ -726,23 +682,6 @@ class EventsActivity : ComponentActivity() {
             "Não foi possível carregar os eventos do Firebase.",
             Toast.LENGTH_LONG
         ).show()
-    }
-
-    private fun eventoEncerrado(
-        data: String,
-        horario: String
-    ): Boolean {
-
-        val formato = SimpleDateFormat(
-            "dd/MM/yyyy HH:mm",
-            Locale.getDefault()
-        )
-
-        val dataEvento = formato.parse(
-            "$data $horario"
-        ) ?: return false
-
-        return Date().after(dataEvento)
     }
 
     private fun abrirDetalhes(
@@ -998,54 +937,28 @@ private fun CartaoEvento(
                     )
 
                     IconeEventos(
-                        tipo = "seta",
+                        tipo = "chevron",
                         cor = EventsBlue,
-                        tamanho = 22.dp
+                        tamanho = 18.dp
                     )
                 }
 
-                Box(
-                    modifier = Modifier
-                        .width(1.dp)
-                        .height(27.dp)
-                        .background(EventsBorder)
-                )
-
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(start = 14.dp),
-                    contentAlignment = Alignment.CenterStart
-                ) {
+                if (encerrado) {
 
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(50.dp))
-                            .background(
-                                if (encerrado) {
-                                    Color(0xFFE8EDF5)
-                                } else {
-                                    Color(0xFFE7F6EE)
-                                }
-                            )
+                            .background(Color(0xFFFFE8E8))
                             .padding(
-                                horizontal = 12.dp,
-                                vertical = 7.dp
+                                horizontal = 11.dp,
+                                vertical = 6.dp
                             )
                     ) {
 
                         Text(
-                            text = if (encerrado) {
-                                "ENCERRADO"
-                            } else {
-                                "PRÓXIMO"
-                            },
-                            color = if (encerrado) {
-                                EventsMuted
-                            } else {
-                                Color(0xFF237A4B)
-                            },
-                            fontSize = 11.sp,
+                            text = "ENCERRADO",
+                            color = Color(0xFFB42318),
+                            fontSize = 10.sp,
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -1066,84 +979,51 @@ private fun IconeEventos(
         modifier = Modifier.size(tamanho)
     ) {
 
-        val s = size.width
-
-        val traco = Stroke(
-            width = 2.3.dp.toPx()
-        )
+        val largura = size.width
+        val altura = size.height
 
         when (tipo) {
 
-            "academico" -> {
+            "busca" -> {
 
-                val cap = Path().apply {
-                    moveTo(s * 0.08f, s * 0.36f)
-                    lineTo(s * 0.50f, s * 0.14f)
-                    lineTo(s * 0.92f, s * 0.36f)
-                    lineTo(s * 0.50f, s * 0.58f)
-                    close()
-                }
-
-                drawPath(
-                    path = cap,
+                drawCircle(
                     color = cor,
-                    style = traco
+                    radius = largura * 0.32f,
+                    center = Offset(
+                        largura * 0.42f,
+                        altura * 0.42f
+                    ),
+                    style = Stroke(width = largura * 0.10f)
                 )
 
                 drawLine(
                     color = cor,
-                    start = Offset(s * 0.24f, s * 0.46f),
-                    end = Offset(s * 0.24f, s * 0.64f),
-                    strokeWidth = traco.width
-                )
-
-                drawArc(
-                    color = cor,
-                    startAngle = 0f,
-                    sweepAngle = 180f,
-                    useCenter = false,
-                    topLeft = Offset(s * 0.24f, s * 0.49f),
-                    size = Size(s * 0.52f, s * 0.38f),
-                    style = traco
-                )
-
-                drawLine(
-                    color = cor,
-                    start = Offset(s * 0.91f, s * 0.37f),
-                    end = Offset(s * 0.91f, s * 0.70f),
-                    strokeWidth = traco.width
+                    start = Offset(
+                        largura * 0.65f,
+                        altura * 0.65f
+                    ),
+                    end = Offset(
+                        largura * 0.90f,
+                        altura * 0.90f
+                    ),
+                    strokeWidth = largura * 0.12f
                 )
             }
 
-            "tecnologia" -> {
+            "chevron" -> {
 
-                drawRoundRect(
-                    color = cor,
-                    topLeft = Offset(s * 0.20f, s * 0.12f),
-                    size = Size(s * 0.60f, s * 0.58f),
-                    cornerRadius = CornerRadius(s * 0.05f),
-                    style = traco
-                )
+                val path = Path().apply {
+                    moveTo(largura * 0.35f, altura * 0.20f)
+                    lineTo(largura * 0.65f, altura * 0.50f)
+                    lineTo(largura * 0.35f, altura * 0.80f)
+                }
 
-                drawLine(
+                drawPath(
+                    path = path,
                     color = cor,
-                    start = Offset(s * 0.12f, s * 0.82f),
-                    end = Offset(s * 0.88f, s * 0.82f),
-                    strokeWidth = traco.width
-                )
-
-                drawLine(
-                    color = cor,
-                    start = Offset(s * 0.20f, s * 0.70f),
-                    end = Offset(s * 0.12f, s * 0.82f),
-                    strokeWidth = traco.width
-                )
-
-                drawLine(
-                    color = cor,
-                    start = Offset(s * 0.80f, s * 0.70f),
-                    end = Offset(s * 0.88f, s * 0.82f),
-                    strokeWidth = traco.width
+                    style = Stroke(
+                        width = largura * 0.12f
+                    )
                 )
             }
 
@@ -1151,136 +1031,212 @@ private fun IconeEventos(
 
                 drawRoundRect(
                     color = cor,
-                    topLeft = Offset(s * 0.16f, s * 0.20f),
-                    size = Size(s * 0.68f, s * 0.66f),
-                    cornerRadius = CornerRadius(s * 0.08f),
-                    style = traco
+                    topLeft = Offset(
+                        largura * 0.12f,
+                        altura * 0.20f
+                    ),
+                    size = Size(
+                        largura * 0.76f,
+                        altura * 0.68f
+                    ),
+                    cornerRadius = CornerRadius(
+                        largura * 0.10f
+                    ),
+                    style = Stroke(
+                        width = largura * 0.09f
+                    )
                 )
 
                 drawLine(
                     color = cor,
-                    start = Offset(s * 0.16f, s * 0.41f),
-                    end = Offset(s * 0.84f, s * 0.41f),
-                    strokeWidth = traco.width
+                    start = Offset(
+                        largura * 0.12f,
+                        altura * 0.40f
+                    ),
+                    end = Offset(
+                        largura * 0.88f,
+                        altura * 0.40f
+                    ),
+                    strokeWidth = largura * 0.09f
                 )
 
                 drawLine(
                     color = cor,
-                    start = Offset(s * 0.34f, s * 0.10f),
-                    end = Offset(s * 0.34f, s * 0.29f),
-                    strokeWidth = traco.width
+                    start = Offset(
+                        largura * 0.32f,
+                        altura * 0.08f
+                    ),
+                    end = Offset(
+                        largura * 0.32f,
+                        altura * 0.30f
+                    ),
+                    strokeWidth = largura * 0.09f
                 )
 
                 drawLine(
                     color = cor,
-                    start = Offset(s * 0.66f, s * 0.10f),
-                    end = Offset(s * 0.66f, s * 0.29f),
-                    strokeWidth = traco.width
+                    start = Offset(
+                        largura * 0.68f,
+                        altura * 0.08f
+                    ),
+                    end = Offset(
+                        largura * 0.68f,
+                        altura * 0.30f
+                    ),
+                    strokeWidth = largura * 0.09f
                 )
             }
 
             "localizacao" -> {
 
-                val marcador = Path().apply {
-
-                    moveTo(s * 0.50f, s * 0.91f)
-
+                val path = Path().apply {
+                    moveTo(largura * 0.50f, altura * 0.92f)
                     cubicTo(
-                        s * 0.43f, s * 0.78f,
-                        s * 0.18f, s * 0.54f,
-                        s * 0.18f, s * 0.39f
+                        largura * 0.40f,
+                        altura * 0.75f,
+                        largura * 0.15f,
+                        altura * 0.50f,
+                        largura * 0.15f,
+                        altura * 0.35f
                     )
-
                     cubicTo(
-                        s * 0.18f, s * 0.19f,
-                        s * 0.34f, s * 0.08f,
-                        s * 0.50f, s * 0.08f
+                        largura * 0.15f,
+                        altura * 0.10f,
+                        largura * 0.85f,
+                        altura * 0.10f,
+                        largura * 0.85f,
+                        altura * 0.35f
                     )
-
                     cubicTo(
-                        s * 0.66f, s * 0.08f,
-                        s * 0.82f, s * 0.19f,
-                        s * 0.82f, s * 0.39f
+                        largura * 0.85f,
+                        altura * 0.50f,
+                        largura * 0.60f,
+                        altura * 0.75f,
+                        largura * 0.50f,
+                        altura * 0.92f
                     )
+                }
 
-                    cubicTo(
-                        s * 0.82f, s * 0.54f,
-                        s * 0.57f, s * 0.78f,
-                        s * 0.50f, s * 0.91f
+                drawPath(
+                    path = path,
+                    color = cor,
+                    style = Stroke(
+                        width = largura * 0.09f
                     )
+                )
 
+                drawCircle(
+                    color = cor,
+                    radius = largura * 0.12f,
+                    center = Offset(
+                        largura * 0.50f,
+                        altura * 0.35f
+                    ),
+                    style = Stroke(
+                        width = largura * 0.09f
+                    )
+                )
+            }
+
+            "academico" -> {
+
+                val path = Path().apply {
+                    moveTo(largura * 0.08f, altura * 0.35f)
+                    lineTo(largura * 0.50f, altura * 0.12f)
+                    lineTo(largura * 0.92f, altura * 0.35f)
+                    lineTo(largura * 0.50f, altura * 0.58f)
                     close()
                 }
 
                 drawPath(
-                    path = marcador,
-                    color = cor,
-                    style = traco
+                    path = path,
+                    color = cor
                 )
 
-                drawCircle(
+                drawLine(
                     color = cor,
-                    radius = s * 0.10f,
-                    center = Offset(s * 0.50f, s * 0.38f),
-                    style = traco
+                    start = Offset(
+                        largura * 0.22f,
+                        altura * 0.45f
+                    ),
+                    end = Offset(
+                        largura * 0.22f,
+                        altura * 0.78f
+                    ),
+                    strokeWidth = largura * 0.08f
+                )
+
+                drawLine(
+                    color = cor,
+                    start = Offset(
+                        largura * 0.78f,
+                        altura * 0.45f
+                    ),
+                    end = Offset(
+                        largura * 0.78f,
+                        altura * 0.78f
+                    ),
+                    strokeWidth = largura * 0.08f
+                )
+
+                drawLine(
+                    color = cor,
+                    start = Offset(
+                        largura * 0.22f,
+                        altura * 0.78f
+                    ),
+                    end = Offset(
+                        largura * 0.78f,
+                        altura * 0.78f
+                    ),
+                    strokeWidth = largura * 0.08f
                 )
             }
 
-            "busca" -> {
+            "tecnologia" -> {
 
-                drawCircle(
+                drawRoundRect(
                     color = cor,
-                    radius = s * 0.29f,
-                    center = Offset(s * 0.40f, s * 0.40f),
-                    style = traco
+                    topLeft = Offset(
+                        largura * 0.15f,
+                        altura * 0.15f
+                    ),
+                    size = Size(
+                        largura * 0.70f,
+                        altura * 0.70f
+                    ),
+                    cornerRadius = CornerRadius(
+                        largura * 0.08f
+                    ),
+                    style = Stroke(
+                        width = largura * 0.09f
+                    )
                 )
 
                 drawLine(
                     color = cor,
-                    start = Offset(s * 0.61f, s * 0.61f),
-                    end = Offset(s * 0.88f, s * 0.88f),
-                    strokeWidth = traco.width
-                )
-            }
-
-            "chevron" -> {
-
-                drawLine(
-                    color = cor,
-                    start = Offset(s * 0.24f, s * 0.36f),
-                    end = Offset(s * 0.50f, s * 0.63f),
-                    strokeWidth = traco.width
+                    start = Offset(
+                        largura * 0.35f,
+                        altura * 0.35f
+                    ),
+                    end = Offset(
+                        largura * 0.65f,
+                        altura * 0.65f
+                    ),
+                    strokeWidth = largura * 0.10f
                 )
 
                 drawLine(
                     color = cor,
-                    start = Offset(s * 0.50f, s * 0.63f),
-                    end = Offset(s * 0.76f, s * 0.36f),
-                    strokeWidth = traco.width
-                )
-            }
-
-            "seta" -> {
-
-                drawLine(
-                    color = cor,
-                    start = Offset(s * 0.12f, s * 0.50f),
-                    end = Offset(s * 0.84f, s * 0.50f),
-                    strokeWidth = traco.width
-                )
-
-                drawLine(
-                    color = cor,
-                    start = Offset(s * 0.57f, s * 0.22f),
-                    end = Offset(s * 0.84f, s * 0.50f),
-                    strokeWidth = traco.width
-                )
-
-                drawLine(
-                    color = cor,
-                    start = Offset(s * 0.57f, s * 0.78f),
-                    end = Offset(s * 0.84f, s * 0.50f),
-                    strokeWidth = traco.width
+                    start = Offset(
+                        largura * 0.65f,
+                        altura * 0.35f
+                    ),
+                    end = Offset(
+                        largura * 0.35f,
+                        altura * 0.65f
+                    ),
+                    strokeWidth = largura * 0.10f
                 )
             }
         }

@@ -63,6 +63,17 @@ class CadastroValidatorTest {
         )
     }
 
+    @Test
+    fun camposPreenchidosComEspacosNasExtremidadesDeveRetornarTrue() {
+        assertTrue(
+            CadastroValidator.camposPreenchidos(
+                " Pedro ",
+                " pedro@email.com ",
+                " 123456 "
+            )
+        )
+    }
+
     // Testes para validação de senha
 
     @Test
@@ -83,6 +94,27 @@ class CadastroValidatorTest {
     fun senhaValidaComEspacosDeveRetornarFalse() {
         assertFalse(
             CadastroValidator.senhaValida("      ")
+        )
+    }
+
+    @Test
+    fun senhaValidaComSeteCaracteresDeveRetornarTrue() {
+        assertTrue(
+            CadastroValidator.senhaValida("1234567")
+        )
+    }
+
+    @Test
+    fun senhaValidaComEspacosNasExtremidadesDeveRetornarTrue() {
+        assertTrue(
+            CadastroValidator.senhaValida(" 123456 ")
+        )
+    }
+
+    @Test
+    fun senhaVaziaDeveRetornarFalse() {
+        assertFalse(
+            CadastroValidator.senhaValida("")
         )
     }
 
@@ -113,6 +145,69 @@ class CadastroValidatorTest {
     fun emailValidoComEspacosDeveRetornarFalse() {
         assertFalse(
             CadastroValidator.emailValido("     ")
+        )
+    }
+
+    @Test
+    fun emailValidoComDominioDeDoisCaracteresDeveRetornarTrue() {
+        assertTrue(
+            CadastroValidator.emailValido("pedro@email.br")
+        )
+    }
+
+    @Test
+    fun emailValidoComDominioDeUmCaracterDeveRetornarFalse() {
+        assertFalse(
+            CadastroValidator.emailValido("pedro@email.c")
+        )
+    }
+
+    @Test
+    fun emailValidoComEspacosNasExtremidadesDeveRetornarTrue() {
+        assertTrue(
+            CadastroValidator.emailValido(" pedro@email.com ")
+        )
+    }
+
+    // Testes para validação dos campos de login
+
+    @Test
+    fun loginCamposPreenchidosComDadosValidosRetornaTrue() {
+        assertTrue(
+            CadastroValidator.loginCamposPreenchidos(
+                "pedro@email.com",
+                "123456"
+            )
+        )
+    }
+
+    @Test
+    fun loginCamposPreenchidosComEmailVazioRetornaFalse() {
+        assertFalse(
+            CadastroValidator.loginCamposPreenchidos(
+                "",
+                "123456"
+            )
+        )
+    }
+
+    @Test
+    fun loginCamposPreenchidosComSenhaVaziaRetornaFalse() {
+        assertFalse(
+            CadastroValidator.loginCamposPreenchidos(
+                "pedro@email.com",
+                ""
+            )
+        )
+    }
+
+    @Test
+    fun loginCamposPreenchidosComEspacosRetornaFalse() {
+        assertFalse(
+            CadastroValidator.loginCamposPreenchidos(
+                "   ",
+                "   "
+            )
         )
     }
 }
