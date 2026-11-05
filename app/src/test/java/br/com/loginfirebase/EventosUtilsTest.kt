@@ -62,6 +62,8 @@ class EventosUtilsTest {
         )
     )
 
+    // Testes para eventoEncerrado
+
     @Test
     fun eventoEncerrado_deveRetornarTrueParaEventoPassado() {
         val resultado = EventosUtils.eventoEncerrado(
@@ -85,6 +87,41 @@ class EventosUtilsTest {
     }
 
     @Test
+    fun eventoEncerrado_deveRetornarFalseParaDataInvalida() {
+        val resultado = EventosUtils.eventoEncerrado(
+            "data inválida",
+            "horário inválido",
+            agora
+        )
+
+        assertFalse(resultado)
+    }
+
+    @Test
+    fun eventoEncerrado_deveRetornarFalseParaEventoNoHorarioAtual() {
+        val resultado = EventosUtils.eventoEncerrado(
+            "04/11/2026",
+            "19:00",
+            agora
+        )
+
+        assertFalse(resultado)
+    }
+
+    @Test
+    fun eventoEncerrado_deveRetornarFalseParaHorarioInvalido() {
+        val resultado = EventosUtils.eventoEncerrado(
+            "04/11/2026",
+            "horário inválido",
+            agora
+        )
+
+        assertFalse(resultado)
+    }
+
+    // Testes para ordenarData
+
+    @Test
     fun ordenarData_deveConverterDataCorretamente() {
         val resultado = EventosUtils.ordenarData("04/11/2026")
 
@@ -102,6 +139,16 @@ class EventosUtilsTest {
 
         assertEquals(Long.MAX_VALUE, resultado)
     }
+
+    @Test
+    fun ordenarData_devePermitirOrdenacaoCronologica() {
+        val dataAnterior = EventosUtils.ordenarData("03/11/2026")
+        val dataPosterior = EventosUtils.ordenarData("10/11/2026")
+
+        assertTrue(dataAnterior < dataPosterior)
+    }
+
+    // Testes para filtrarEventos
 
     @Test
     fun filtrarEventos_deveFiltrarPorNome() {
@@ -182,5 +229,85 @@ class EventosUtilsTest {
 
         assertEquals(1, resultado.size)
         assertEquals("Palestra de Tecnologia", resultado[0].nome)
+    }
+
+    // Testes complementares
+
+    @Test
+    fun filtrarEventos_deveRetornarListaVaziaParaBuscaInexistente() {
+        val resultado = EventosUtils.filtrarEventos(
+            eventos = eventos,
+            busca = "Evento inexistente",
+            categoriaSelecionada = "Todas",
+            situacaoSelecionada = "Todos",
+            agora = agora
+        )
+
+        assertTrue(resultado.isEmpty())
+    }
+
+    @Test
+    fun filtrarEventos_deveRetornarListaVaziaParaCategoriaInexistente() {
+        val resultado = EventosUtils.filtrarEventos(
+            eventos = eventos,
+            busca = "",
+            categoriaSelecionada = "Categoria inexistente",
+            situacaoSelecionada = "Todos",
+            agora = agora
+        )
+
+        assertTrue(resultado.isEmpty())
+    }
+
+    @Test
+    fun filtrarEventos_deveRetornarTodosParaSituacaoTodos() {
+        val resultado = EventosUtils.filtrarEventos(
+            eventos = eventos,
+            busca = "",
+            categoriaSelecionada = "Todas",
+            situacaoSelecionada = "Todos",
+            agora = agora
+        )
+
+        assertEquals(3, resultado.size)
+    }
+
+    @Test
+    fun filtrarEventos_deveRetornarTodosParaBuscaVazia() {
+        val resultado = EventosUtils.filtrarEventos(
+            eventos = eventos,
+            busca = "",
+            categoriaSelecionada = "Todas",
+            situacaoSelecionada = "Todos",
+            agora = agora
+        )
+
+        assertEquals(eventos.size, resultado.size)
+    }
+
+    @Test
+    fun filtrarEventos_deveRetornarListaVaziaQuandoNaoExistemEventos() {
+        val resultado = EventosUtils.filtrarEventos(
+            eventos = emptyList(),
+            busca = "",
+            categoriaSelecionada = "Todas",
+            situacaoSelecionada = "Todos",
+            agora = agora
+        )
+
+        assertTrue(resultado.isEmpty())
+    }
+
+    @Test
+    fun filtrarEventos_deveRetornarListaVaziaParaFiltrosCombinadosSemCorrespondencia() {
+        val resultado = EventosUtils.filtrarEventos(
+            eventos = eventos,
+            busca = "Hackathon",
+            categoriaSelecionada = "Acadêmico",
+            situacaoSelecionada = "Próximos",
+            agora = agora
+        )
+
+        assertTrue(resultado.isEmpty())
     }
 }

@@ -86,4 +86,5 @@ object EventosUtils {
                     correspondeSituacao
         }
     }
+    
 }
