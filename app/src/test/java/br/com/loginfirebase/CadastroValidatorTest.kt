@@ -210,4 +210,37 @@ class CadastroValidatorTest {
             )
         )
     }
+
+    // Testes de borda adicionais para alta cobertura
+
+    @Test
+    fun emailValidoComMuitosArrobasDeveRetornarFalse() {
+        assertFalse(
+            CadastroValidator.emailValido("pedro@@email.com")
+        )
+    }
+
+    @Test
+    fun emailValidoComCaracteresEspeciaisCorretosDeveRetornarTrue() {
+        assertTrue(
+            CadastroValidator.emailValido("pedro.copette+test@sub.domain.com")
+        )
+    }
+
+    @Test
+    fun senhaValidaComEspacosEAbasDeveRetornarFalseSeMenorQueSeisAposTrim() {
+        assertFalse(
+            CadastroValidator.senhaValida("  123  ")
+        )
+    }
+
+    @Test
+    fun loginCamposPreenchidosComQuebraDeLinhaVaziaDeveRetornarFalse() {
+        assertFalse(
+            CadastroValidator.loginCamposPreenchidos(
+                "\n\t",
+                "\n"
+            )
+        )
+    }
 }

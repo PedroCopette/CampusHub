@@ -61,6 +61,12 @@ class MainActivity : ComponentActivity() {
 
     private lateinit var auth: FirebaseAuth
 
+    companion object {
+        fun validarLogin(email: String, senha: String): Boolean {
+            return CadastroValidator.loginCamposPreenchidos(email, senha)
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -95,22 +101,15 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun fazerLogin(email: String, senha: String) {
-
-        val emailFinal = email.trim()
-        val senhaFinal = senha.trim()
-
-        if (!CadastroValidator.loginCamposPreenchidos(emailFinal, senhaFinal)) {
-            Toast.makeText(
-                this,
-                "Preencha o e-mail e a senha.",
-                Toast.LENGTH_SHORT
-            ).show()
+        val (valido, mensagem) = AuthManager.validarLogin(email, senha)
+        if (!valido) {
+            Toast.makeText(this, mensagem, Toast.LENGTH_SHORT).show()
             return
         }
 
         auth.signInWithEmailAndPassword(
-            emailFinal,
-            senhaFinal
+            email.trim(),
+            senha.trim()
         ).addOnCompleteListener(this) { task ->
 
             if (task.isSuccessful) {

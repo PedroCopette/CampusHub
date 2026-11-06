@@ -50,6 +50,10 @@ import java.util.UUID
 @OptIn(ExperimentalMaterial3Api::class)
 class EventVideoActivity : ComponentActivity() {
 
+    companion object {
+        fun sanitizarId(id: String) = MediaUtils.sanitizarIdEvento(id)
+    }
+
     private val auth = FirebaseAuth.getInstance()
 
     private var idEvento = ""
@@ -474,80 +478,16 @@ class EventVideoActivity : ComponentActivity() {
     }
 
     private fun carregarVideos(): List<VideoPublicado> {
-
         val arquivo = arquivoPublicacoes()
-
-        if (!arquivo.exists()) {
-            return emptyList()
-        }
-
-        return try {
-
-            val json = JSONArray(arquivo.readText())
-            val lista = mutableListOf<VideoPublicado>()
-
-            for (i in 0 until json.length()) {
-
-                val item = json.optJSONObject(i) ?: continue
-
-                val id = item.optString("id")
-                val nomeArquivo = item.optString("arquivo")
-                val autor = item.optString("autor")
-                val usuarioId = item.optString("usuarioId")
-                val data = item.optString("dataPublicacao")
-
-                if (
-                    id.isNotBlank() &&
-                    nomeArquivo.isNotBlank() &&
-                    autor.isNotBlank() &&
-                    usuarioId.isNotBlank() &&
-                    data.isNotBlank()
-                ) {
-                    lista.add(
-                        VideoPublicado(
-                            id = id,
-                            arquivo = nomeArquivo,
-                            autor = autor,
-                            usuarioId = usuarioId,
-                            dataPublicacao = data
-                        )
-                    )
-                }
-            }
-
-            lista
-
-        } catch (e: Exception) {
-            emptyList()
-        }
+        if (!arquivo.exists()) return emptyList()
+        return MediaManager.parseVideosJson(arquivo.readText())
     }
 
     private fun salvarVideos() {
-
         try {
-
-            val json = JSONArray()
-
-            videos.forEach { video ->
-                json.put(
-                    JSONObject()
-                        .put("id", video.id)
-                        .put("arquivo", video.arquivo)
-                        .put("autor", video.autor)
-                        .put("usuarioId", video.usuarioId)
-                        .put("dataPublicacao", video.dataPublicacao)
-                )
-            }
-
-            arquivoPublicacoes().writeText(
-                json.toString()
-            )
-
+            arquivoPublicacoes().writeText(MediaManager.serializarVideosJson(videos))
         } catch (e: Exception) {
-
-            mostrarMensagem(
-                "Não foi possível salvar os dados do vídeo."
-            )
+            mostrarMensagem("Não foi possível salvar os dados do vídeo.")
         }
     }
 

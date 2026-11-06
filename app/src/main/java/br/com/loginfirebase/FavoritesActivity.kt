@@ -72,6 +72,12 @@ private val FavoritesRedBackground = Color(0xFFFFEEEE)
 
 class FavoritesActivity : ComponentActivity() {
 
+    companion object {
+        fun formatarTextoLista(count: Int): String {
+            return FavoritesUtils.formatarContadorFavoritos(count)
+        }
+    }
+
     private val auth = FirebaseAuth.getInstance()
     private val db = FirebaseFirestore.getInstance()
 
@@ -495,37 +501,8 @@ class FavoritesActivity : ComponentActivity() {
             .whereEqualTo("usuarioId", usuario.uid)
             .get()
             .addOnSuccessListener { resultado ->
-
-                val lista = resultado.documents.mapNotNull { documento ->
-
-                    val id = documento.getString("idEvento")
-                    val nome = documento.getString("nomeEvento")
-                    val data = documento.getString("dataEvento")
-                    val horario = documento.getString("horarioEvento")
-                    val local = documento.getString("localEvento")
-
-                    if (
-                        id != null &&
-                        nome != null &&
-                        data != null &&
-                        horario != null &&
-                        local != null
-                    ) {
-
-                        FavoritoEvento(
-                            id = id,
-                            nome = nome,
-                            data = data,
-                            horario = horario,
-                            local = local
-                        )
-
-                    } else {
-                        null
-                    }
-                }
-
-                eventosFavoritos = lista
+                val docs = resultado.documents.map { it.data ?: emptyMap() }
+                eventosFavoritos = FavoritesManager.mapearListaFavoritos(docs)
             }
             .addOnFailureListener {
 
@@ -567,7 +544,7 @@ class FavoritesActivity : ComponentActivity() {
 }
 
 @androidx.compose.runtime.Composable
-private fun IconeFavoritos(
+internal fun IconeFavoritos(
     tipo: String,
     cor: Color,
     tamanho: Dp

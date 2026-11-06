@@ -58,6 +58,12 @@ private val RegistrationMuted = Color(0xFF718096)
 
 class RegistrationActivity : ComponentActivity() {
 
+    companion object {
+        fun validarCadastro(nome: String, email: String, senha: String): Boolean {
+            return CadastroValidator.camposPreenchidos(nome, email, senha) && CadastroValidator.senhaValida(senha)
+        }
+    }
+
     private lateinit var auth: FirebaseAuth
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -84,30 +90,15 @@ class RegistrationActivity : ComponentActivity() {
         email: String,
         senha: String
     ) {
+        val (valido, mensagem) = AuthManager.validarCadastro(nome, email, senha)
+        if (!valido) {
+            Toast.makeText(this, mensagem, Toast.LENGTH_SHORT).show()
+            return
+        }
 
         val nomeFinal = nome.trim()
         val emailFinal = email.trim()
         val senhaFinal = senha.trim()
-
-        if (!CadastroValidator.camposPreenchidos(nomeFinal, emailFinal, senhaFinal)) {
-            Toast.makeText(
-                this,
-                "Preencha todos os campos.",
-                Toast.LENGTH_SHORT
-            ).show()
-
-            return
-        }
-
-        if (!CadastroValidator.senhaValida(senhaFinal)) {
-            Toast.makeText(
-                this,
-                "A senha deve ter pelo menos 6 caracteres.",
-                Toast.LENGTH_SHORT
-            ).show()
-
-            return
-        }
 
         auth.createUserWithEmailAndPassword(
             emailFinal,

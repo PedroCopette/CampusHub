@@ -78,6 +78,19 @@ data class EventoBusca(
 
 class EventsActivity : ComponentActivity() {
 
+    companion object {
+        fun obterEnderecoPadrao(id: String): String {
+            return when (id) {
+                "semana_academica" -> "Av. Batista Bonotto Sobrinho, 733, Santiago - RS, Brasil"
+                "hackathon_campushub" -> "Rua Tio Virgílio, 423, Santiago - RS, Brasil"
+                "palestra_tecnologia" -> "Rua Bento Gonçalves, 1642, Santiago - RS, Brasil"
+                else -> "Santiago, Rio Grande do Sul, Brasil"
+            }
+        }
+        fun obterFiltrosCategorias(): List<String> = listOf("Todas", "Acadêmico", "Tecnologia")
+        fun obterFiltrosSituacoes(): List<String> = listOf("Todos", "Próximos", "Encerrados")
+    }
+
     private val auth = FirebaseAuth.getInstance()
     private val db = FirebaseFirestore.getInstance()
 
@@ -480,61 +493,9 @@ class EventsActivity : ComponentActivity() {
         garantirEventosIniciais()
     }
 
-    private fun enderecoPadrao(id: String): String {
-        return when (id) {
+    private fun enderecoPadrao(id: String): String = EventsManager.obterEnderecoPadrao(id)
 
-            "semana_academica" ->
-                "Av. Batista Bonotto Sobrinho, 733, Santiago - RS, Brasil"
-
-            "hackathon_campushub" ->
-                "Rua Tio Virgílio, 423, Santiago - RS, Brasil"
-
-            "palestra_tecnologia" ->
-                "Rua Bento Gonçalves, 1642, Santiago - RS, Brasil"
-
-            else ->
-                "Santiago, Rio Grande do Sul, Brasil"
-        }
-    }
-
-    private fun obterEventosIniciais(): List<EventoBusca> {
-
-        return listOf(
-
-            EventoBusca(
-                id = "semana_academica",
-                nome = "Semana Acadêmica",
-                data = "20/09/2026",
-                horario = "19:00",
-                local = "Auditório da URI",
-                descricao = "Evento acadêmico com palestras, apresentações e atividades para os estudantes.",
-                categoria = "Acadêmico",
-                endereco = enderecoPadrao("semana_academica")
-            ),
-
-            EventoBusca(
-                id = "hackathon_campushub",
-                nome = "Hackathon CampusHub",
-                data = "25/09/2026",
-                horario = "08:00",
-                local = "Laboratório de Informática",
-                descricao = "Competição de programação e desenvolvimento de soluções tecnológicas.",
-                categoria = "Tecnologia",
-                endereco = enderecoPadrao("hackathon_campushub")
-            ),
-
-            EventoBusca(
-                id = "palestra_tecnologia",
-                nome = "Palestra de Tecnologia",
-                data = "30/09/2026",
-                horario = "20:00",
-                local = "Sala 12",
-                descricao = "Palestra sobre tecnologia, inovação e tendências da área de computação.",
-                categoria = "Tecnologia",
-                endereco = enderecoPadrao("palestra_tecnologia")
-            )
-        )
-    }
+    private fun obterEventosIniciais(): List<EventoBusca> = EventsManager.obterEventosIniciais()
 
     private fun garantirEventosIniciais() {
 
@@ -616,58 +577,17 @@ class EventsActivity : ComponentActivity() {
                 mostrarErroAoCarregar()
             }
     }
-    private fun carregarEventosDoBanco() {
 
+    private fun carregarEventosDoBanco() {
         db.collection("eventos")
             .get()
             .addOnSuccessListener { resultado ->
-
-                val lista = resultado.documents.mapNotNull { documento ->
-
-                    val nome = documento.getString("nomeEvento")
-                    val data = documento.getString("dataEvento")
-                    val horario = documento.getString("horarioEvento")
-                    val local = documento.getString("localEvento")
-                    val descricao = documento.getString("descricaoEvento")
-                    val categoria = documento.getString("categoria")
-
-                    val endereco = documento.getString("enderecoEvento")
-                        ?: enderecoPadrao(documento.id)
-
-                    if (
-                        nome != null &&
-                        data != null &&
-                        horario != null &&
-                        local != null &&
-                        descricao != null &&
-                        categoria != null
-                    ) {
-
-                        EventoBusca(
-                            id = documento.id,
-                            nome = nome,
-                            data = data,
-                            horario = horario,
-                            local = local,
-                            descricao = descricao,
-                            categoria = categoria,
-                            endereco = endereco
-                        )
-
-                    } else {
-                        null
-                    }
-
-                }.sortedBy { evento ->
-                    EventosUtils.ordenarData(evento.data)
-                }
-
-                eventosCarregados = lista
+                val docs = resultado.documents.map { Pair(it.id, it.data ?: emptyMap()) }
+                eventosCarregados = EventsManager.MapearListaDocumentos(docs)
                 carregandoEventos = false
                 erroAoCarregar = false
             }
             .addOnFailureListener {
-
                 mostrarErroAoCarregar()
             }
     }
@@ -712,7 +632,7 @@ class EventsActivity : ComponentActivity() {
 }
 
 @Composable
-private fun CartaoFiltro(
+internal fun CartaoFiltro(
     texto: String,
     onClick: () -> Unit
 ) {
@@ -761,7 +681,7 @@ private fun CartaoFiltro(
 }
 
 @Composable
-private fun CartaoEvento(
+internal fun CartaoEvento(
     evento: EventoBusca,
     encerrado: Boolean,
     onClick: () -> Unit
@@ -969,7 +889,7 @@ private fun CartaoEvento(
 }
 
 @Composable
-private fun IconeEventos(
+internal fun IconeEventos(
     tipo: String,
     cor: Color,
     tamanho: Dp

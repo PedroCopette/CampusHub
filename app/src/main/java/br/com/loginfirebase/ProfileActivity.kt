@@ -50,6 +50,12 @@ private val ProfileMuted = Color(0xFF718096)
 
 class ProfileActivity : ComponentActivity() {
 
+    companion object {
+        fun formatarNome(nome: String?, email: String?): String {
+            return ProfileUtils.formatarNomeExibicao(nome, email)
+        }
+    }
+
     private val auth = FirebaseAuth.getInstance()
 
     private var nomeUsuario by mutableStateOf("Nome não informado")
@@ -88,18 +94,14 @@ class ProfileActivity : ComponentActivity() {
 
     private fun carregarPerfil() {
         val usuario = auth.currentUser
-
-        nomeUsuario = usuario?.displayName
-            ?.takeIf { it.isNotBlank() }
-            ?: "Nome não informado"
-
-        emailUsuario = usuario?.email
-            ?: "E-mail não informado"
+        val (nome, email) = ProfileManager.tratarDadosPerfil(usuario?.displayName, usuario?.email)
+        nomeUsuario = nome
+        emailUsuario = email
     }
 }
 
 @Composable
-private fun TelaPerfilCampus(
+internal fun TelaPerfilCampus(
     nome: String,
     email: String,
     editar: () -> Unit,
@@ -314,7 +316,7 @@ private fun TelaPerfilCampus(
 }
 
 @Composable
-private fun CampoPerfil(
+internal fun CampoPerfil(
     titulo: String,
     valor: String
 ) {

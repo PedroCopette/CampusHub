@@ -62,6 +62,12 @@ private val DetailsBorder = Color(0xFFE0E9F7)
 @OptIn(ExperimentalMaterial3Api::class)
 class EventDetailsActivity : ComponentActivity() {
 
+    companion object {
+        fun formatarAvisoAvaliacao(media: Double, total: Int): String {
+            return EventDetailsUtils.formatarMediaTexto(media, total)
+        }
+    }
+
     private val auth = FirebaseAuth.getInstance()
     private val db = FirebaseFirestore.getInstance()
 
@@ -1000,42 +1006,12 @@ class EventDetailsActivity : ComponentActivity() {
     }
 
     private fun carregarComentarios(idEvento: String) {
-
         db.collection("comentarios")
             .whereEqualTo("idEvento", idEvento)
             .get()
             .addOnSuccessListener { resultado ->
-
-                val lista = resultado.documents.mapNotNull { documento ->
-
-                    val id = documento.id
-                    val texto = documento.getString("texto")
-                    val usuarioId = documento.getString("usuarioId")
-                    val autorNome = documento.getString("autorNome")
-                    val dataPublicacao =
-                        documento.getString("dataPublicacao")
-
-                    if (
-                        texto != null &&
-                        usuarioId != null &&
-                        autorNome != null &&
-                        dataPublicacao != null
-                    ) {
-
-                        Comentario(
-                            id = id,
-                            texto = texto,
-                            usuarioId = usuarioId,
-                            autorNome = autorNome,
-                            dataPublicacao = dataPublicacao
-                        )
-
-                    } else {
-                        null
-                    }
-                }
-
-                comentarios = lista
+                val docs = resultado.documents.map { Pair(it.id, it.data ?: emptyMap()) }
+                comentarios = EventDetailsManager.mapearListaComentarios(docs)
             }
     }
 
@@ -1315,7 +1291,7 @@ class EventDetailsActivity : ComponentActivity() {
 }
 
 @Composable
-private fun CartaoDetalhes(
+internal fun CartaoDetalhes(
     content: @Composable ColumnScope.() -> Unit
 ) {
 
@@ -1345,7 +1321,7 @@ private fun CartaoDetalhes(
 }
 
 @Composable
-private fun CampoDetalhe(
+internal fun CampoDetalhe(
     titulo: String,
     valor: String
 ) {
@@ -1372,7 +1348,7 @@ private fun CampoDetalhe(
 }
 
 @Composable
-private fun BotaoMaterial(
+internal fun BotaoMaterial(
     texto: String,
     onClick: () -> Unit
 ) {

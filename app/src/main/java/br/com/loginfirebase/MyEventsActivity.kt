@@ -61,6 +61,12 @@ private val MyEventsGreen = Color(0xFF237A4B)
 
 class MyEventsActivity : ComponentActivity() {
 
+    companion object {
+        fun formatarTextoInscricoes(count: Int): String {
+            return MyEventsUtils.formatarContadorInscricoes(count)
+        }
+    }
+
     private val auth = FirebaseAuth.getInstance()
     private val db = FirebaseFirestore.getInstance()
 
@@ -427,34 +433,8 @@ class MyEventsActivity : ComponentActivity() {
             .whereEqualTo("usuarioId", usuario.uid)
             .get()
             .addOnSuccessListener { resultado ->
-
-                val lista = resultado.documents.mapNotNull { documento ->
-
-                    val nome = documento.getString("nomeEvento")
-                    val data = documento.getString("dataEvento")
-                    val horario = documento.getString("horarioEvento")
-                    val local = documento.getString("localEvento")
-
-                    if (
-                        nome != null &&
-                        data != null &&
-                        horario != null &&
-                        local != null
-                    ) {
-
-                        Evento(
-                            nome = nome,
-                            data = data,
-                            horario = horario,
-                            local = local
-                        )
-
-                    } else {
-                        null
-                    }
-                }
-
-                eventosInscritos = lista
+                val docs = resultado.documents.map { it.data ?: emptyMap() }
+                eventosInscritos = MyEventsManager.mapearListaInscricoes(docs)
             }
             .addOnFailureListener {
 
@@ -468,7 +448,7 @@ class MyEventsActivity : ComponentActivity() {
 }
 
 @Composable
-private fun IconeMeusEventos(
+internal fun IconeMeusEventos(
     tipo: String,
     cor: Color,
     tamanho: androidx.compose.ui.unit.Dp

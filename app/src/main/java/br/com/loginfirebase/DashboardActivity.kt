@@ -59,6 +59,20 @@ private val CampusRedBackground = Color(0xFFFFF0F0)
 
 class DashboardActivity : ComponentActivity() {
 
+    companion object {
+        fun obterTituloArea(): String = "ÁREA DO ALUNO"
+        fun tratarCliqueOpcao(opcao: String): String {
+            return when (opcao) {
+                "Eventos" -> "EventsActivity"
+                "Meus Eventos" -> "MyEventsActivity"
+                "Meus Favoritos" -> "FavoritesActivity"
+                "Meu Perfil" -> "ProfileActivity"
+                "Sair" -> "MainActivity"
+                else -> "Desconhecido"
+            }
+        }
+    }
+
     private lateinit var auth: FirebaseAuth
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -322,7 +336,7 @@ class DashboardActivity : ComponentActivity() {
 }
 
 @Composable
-private fun OpcaoDashboard(
+internal fun OpcaoDashboard(
     icone: String,
     titulo: String,
     descricao: String,
@@ -441,7 +455,7 @@ private fun OpcaoDashboard(
 
 // Ícones de contorno simples, sem emojis
 @Composable
-private fun IconeLinha(
+internal fun IconeLinha(
     tipo: String,
     cor: Color
 ) {
@@ -624,7 +638,7 @@ private fun IconeLinha(
 }
 
 @Composable
-private fun IconeSeta(
+internal fun IconeSeta(
     cor: Color
 ) {
 

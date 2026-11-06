@@ -53,6 +53,12 @@ private val RecoveryMuted = Color(0xFF718096)
 
 class RecoveryActivity : ComponentActivity() {
 
+    companion object {
+        fun validarEmailRecuperacao(email: String): Boolean {
+            return email.trim().isNotEmpty() && CadastroValidator.emailValido(email)
+        }
+    }
+
     private lateinit var auth: FirebaseAuth
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -332,21 +338,13 @@ class RecoveryActivity : ComponentActivity() {
     }
 
     private fun enviarRecuperacao(email: String) {
-
-        val emailFinal = email.trim()
-
-        if (emailFinal.isEmpty()) {
-
-            Toast.makeText(
-                this,
-                "Digite seu e-mail.",
-                Toast.LENGTH_SHORT
-            ).show()
-
+        val (valido, mensagem) = RecoveryManager.validarEmailRecuperacao(email)
+        if (!valido) {
+            Toast.makeText(this, mensagem, Toast.LENGTH_SHORT).show()
             return
         }
 
-        auth.sendPasswordResetEmail(emailFinal)
+        auth.sendPasswordResetEmail(email.trim())
             .addOnCompleteListener(this) { task ->
 
                 if (task.isSuccessful) {

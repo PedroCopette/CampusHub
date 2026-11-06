@@ -52,6 +52,12 @@ private val EditMuted = Color(0xFF718096)
 
 class EditProfileActivity : ComponentActivity() {
 
+    companion object {
+        fun validarEdicao(nome: String): Boolean {
+            return ProfileUtils.validarEdicaoNome(nome)
+        }
+    }
+
     private val auth = FirebaseAuth.getInstance()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -74,23 +80,13 @@ class EditProfileActivity : ComponentActivity() {
                     email = emailAtual,
 
                     salvar = { nome ->
-
-                        val nomeFinal = nome.trim()
-
-                        if (nomeFinal.isEmpty()) {
-
-                            Toast.makeText(
-                                this@EditProfileActivity,
-                                "Digite um nome.",
-                                Toast.LENGTH_SHORT
-                            ).show()
-
+                        val (valido, mensagem) = ProfileManager.validarEdicaoPerfil(nome)
+                        if (!valido) {
+                            Toast.makeText(this@EditProfileActivity, mensagem, Toast.LENGTH_SHORT).show()
                         } else {
-
-                            val atualizacao =
-                                UserProfileChangeRequest.Builder()
-                                    .setDisplayName(nomeFinal)
-                                    .build()
+                            val atualizacao = UserProfileChangeRequest.Builder()
+                                .setDisplayName(nome.trim())
+                                .build()
 
                             usuario.updateProfile(atualizacao)
                                 .addOnCompleteListener { task ->
@@ -127,7 +123,7 @@ class EditProfileActivity : ComponentActivity() {
 }
 
 @Composable
-private fun TelaEditarPerfil(
+internal fun TelaEditarPerfil(
     nomeInicial: String,
     email: String,
     salvar: (String) -> Unit,

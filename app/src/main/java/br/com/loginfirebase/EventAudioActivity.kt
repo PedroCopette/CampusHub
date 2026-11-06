@@ -50,6 +50,10 @@ import java.util.UUID
 @OptIn(ExperimentalMaterial3Api::class)
 class EventAudioActivity : ComponentActivity() {
 
+    companion object {
+        fun sanitizarId(id: String) = MediaUtils.sanitizarIdEvento(id)
+    }
+
     private val auth = FirebaseAuth.getInstance()
 
     private var idEvento = ""
@@ -442,79 +446,16 @@ class EventAudioActivity : ComponentActivity() {
     }
 
     private fun carregarAudios(): List<AudioPublicado> {
-
         val arquivo = arquivoPublicacoes()
-
-        if (!arquivo.exists()) {
-            return emptyList()
-        }
-
-        return try {
-
-            val json = JSONArray(arquivo.readText())
-            val lista = mutableListOf<AudioPublicado>()
-
-            for (i in 0 until json.length()) {
-
-                val item = json.optJSONObject(i) ?: continue
-
-                val id = item.optString("id")
-                val nomeArquivo = item.optString("arquivo")
-                val autor = item.optString("autor")
-                val usuarioId = item.optString("usuarioId")
-                val data = item.optString("dataPublicacao")
-
-                if (
-                    id.isNotBlank() &&
-                    nomeArquivo.isNotBlank() &&
-                    autor.isNotBlank() &&
-                    usuarioId.isNotBlank() &&
-                    data.isNotBlank()
-                ) {
-                    lista.add(
-                        AudioPublicado(
-                            id = id,
-                            arquivo = nomeArquivo,
-                            autor = autor,
-                            usuarioId = usuarioId,
-                            dataPublicacao = data
-                        )
-                    )
-                }
-            }
-
-            lista
-
-        } catch (e: Exception) {
-            emptyList()
-        }
+        if (!arquivo.exists()) return emptyList()
+        return MediaManager.parseAudiosJson(arquivo.readText())
     }
 
     private fun salvarAudios() {
-
         try {
-
-            val json = JSONArray()
-
-            audios.forEach { audio ->
-
-                json.put(
-                    JSONObject()
-                        .put("id", audio.id)
-                        .put("arquivo", audio.arquivo)
-                        .put("autor", audio.autor)
-                        .put("usuarioId", audio.usuarioId)
-                        .put("dataPublicacao", audio.dataPublicacao)
-                )
-            }
-
-            arquivoPublicacoes().writeText(json.toString())
-
+            arquivoPublicacoes().writeText(MediaManager.serializarAudiosJson(audios))
         } catch (e: Exception) {
-
-            mostrarMensagem(
-                "Não foi possível salvar os dados do áudio."
-            )
+            mostrarMensagem("Não foi possível salvar os dados do áudio.")
         }
     }
 

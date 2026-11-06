@@ -310,4 +310,35 @@ class EventosUtilsTest {
 
         assertTrue(resultado.isEmpty())
     }
+
+    // Testes de borda adicionais para EventosUtils
+
+    @Test
+    fun ordenarData_deveRetornarLongMaxValueParaStringVazia() {
+        val resultado = EventosUtils.ordenarData("")
+        assertEquals(Long.MAX_VALUE, resultado)
+    }
+
+    @Test
+    fun eventoEncerrado_deveRetornarTrueParaHorarioAnteriorNoMesmoDia() {
+        val resultado = EventosUtils.eventoEncerrado(
+            "04/11/2026",
+            "18:59",
+            agora
+        )
+        assertTrue(resultado)
+    }
+
+    @Test
+    fun filtrarEventos_deveFiltrarPorBuscaParcialNoNome() {
+        val resultado = EventosUtils.filtrarEventos(
+            eventos = eventos,
+            busca = "Palestra",
+            categoriaSelecionada = "Todas",
+            situacaoSelecionada = "Todos",
+            agora = agora
+        )
+        assertEquals(1, resultado.size)
+        assertEquals("Palestra de Tecnologia", resultado[0].nome)
+    }
 }
