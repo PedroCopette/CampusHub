@@ -39,6 +39,9 @@ android {
     testOptions {
         unitTests {
             isIncludeAndroidResources = true
+            all { testTask ->
+                testTask.jvmArgs("-XX:+EnableDynamicAgentLoading")
+            }
         }
     }
 
@@ -50,6 +53,32 @@ android {
     buildFeatures {
         compose = true
     }
+}
+
+tasks.register<JacocoReport>("jacocoTestReport") {
+    dependsOn("testDebugUnitTest")
+
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+    }
+
+    val fileFilter = listOf(
+        "**/R.class", "**/R$*.class", "**/BuildConfig.*", "**/Manifest*.*",
+        "**/*Test*.*", "android/**/*.*"
+    )
+
+    val debugTree = fileTree(layout.buildDirectory.dir("tmp/kotlin-classes/debug")) {
+        exclude(fileFilter)
+    }
+
+    val mainSrc = "${project.projectDir}/src/main/java"
+
+    sourceDirectories.setFrom(files(mainSrc))
+    classDirectories.setFrom(files(debugTree))
+    executionData.setFrom(fileTree(layout.buildDirectory) {
+        include("outputs/unit_test_code_coverage/debugUnitTest/testDebugUnitTest.exec")
+    })
 }
 
 dependencies {
@@ -77,6 +106,7 @@ dependencies {
     testImplementation("androidx.test:core-ktx:1.6.1")
     testImplementation("androidx.test.ext:junit-ktx:1.2.1")
     testImplementation(libs.androidx.compose.ui.test.junit4)
+    testImplementation("org.objenesis:objenesis:3.3")
 
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
