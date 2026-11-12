@@ -302,12 +302,13 @@ fun TelaLoginUI(
 
 @Composable
 fun TelaCadastroUI(
-    registrar: (String, String, String) -> Unit,
+    registrar: (String, String, String, String) -> Unit,
     voltar: () -> Unit
 ) {
     var nome by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var senha by remember { mutableStateOf("") }
+    var perfil by remember { mutableStateOf("aluno") }
 
     Column(
         modifier = Modifier
@@ -512,10 +513,18 @@ fun TelaCadastroUI(
                         )
                     )
 
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text("TIPO DE PERFIL", color = MutedColor, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        listOf("aluno" to "Aluno", "organizador" to "Organizador").forEach { (value, label) ->
+                            OutlinedButton(onClick = { perfil = value }, colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(contentColor = if (perfil == value) BlueColor else MutedColor)) { Text(if (perfil == value) "✓ $label" else label) }
+                        }
+                    }
+
                     Spacer(modifier = Modifier.height(24.dp))
 
                     Button(
-                        onClick = { registrar(nome, email, senha) },
+                        onClick = { registrar(nome, email, senha, perfil) },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(54.dp),

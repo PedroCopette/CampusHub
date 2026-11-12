@@ -32,6 +32,8 @@
             android:exported="false"
             android:theme="@style/Theme.LoginFirebase" />
 
+        <activity android:name=".activities.OrganizerEventsActivity" android:exported="false" android:theme="@style/Theme.LoginFirebase" />
+
         <activity
             android:name=".activities.EventDetailsActivity"
             android:exported="false"

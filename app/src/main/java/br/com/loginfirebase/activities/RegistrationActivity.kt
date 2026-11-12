@@ -32,8 +32,8 @@ class RegistrationActivity : ComponentActivity() {
         setContent {
             LoginFirebaseTheme {
                 TelaCadastro(
-                    registrar = { nome, email, senha ->
-                        cadastrarUsuario(nome, email, senha)
+                    registrar = { nome, email, senha, perfil ->
+                        cadastrarUsuario(nome, email, senha, perfil)
                     },
                     voltar = {
                         finish()
@@ -46,7 +46,8 @@ class RegistrationActivity : ComponentActivity() {
     private fun cadastrarUsuario(
         nome: String,
         email: String,
-        senha: String
+        senha: String,
+        perfil: String
     ) {
         val (valido, mensagem) = AuthManager.validarCadastro(nome, email, senha)
         if (!valido) {
@@ -63,7 +64,14 @@ class RegistrationActivity : ComponentActivity() {
                 val msg = AuthManager.processarRespostaCadastro(task.isSuccessful, task.exception?.message)
                 if (task.isSuccessful && auth.currentUser != null) {
                     val req = UserProfileChangeRequest.Builder().setDisplayName(nomeFinal).build()
-                    auth.currentUser!!.updateProfile(req).addOnCompleteListener {
+                    auth.currentUser!!.updateProfile(req).addOnCompleteListener { profileTask ->
+                        if (!profileTask.isSuccessful) {
+                            Toast.makeText(this, "Conta criada, mas não foi possível atualizar o nome do perfil.", Toast.LENGTH_LONG).show()
+                        }
+                        val uid = auth.currentUser!!.uid
+                        com.google.firebase.firestore.FirebaseFirestore.getInstance().collection("usuarios").document(uid)
+                            .set(mapOf("nome" to nomeFinal, "email" to emailFinal, "perfil" to perfil))
+                            .addOnSuccessListener {
                         val dados = PreferencesManager.prepararDadosPreferencias(nomeFinal, emailFinal)
                         val preferencias = getSharedPreferences("CampusHubPrefs", Context.MODE_PRIVATE)
                         preferencias.edit()
@@ -74,6 +82,10 @@ class RegistrationActivity : ComponentActivity() {
                         auth.signOut()
                         Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
                         finish()
+                            }
+                            .addOnFailureListener { error ->
+                                Toast.makeText(this, "Conta criada, mas o perfil não foi salvo: ${error.localizedMessage}", Toast.LENGTH_LONG).show()
+                            }
                     }
                 } else {
                     Toast.makeText(this, msg, Toast.LENGTH_LONG).show()
@@ -84,7 +96,7 @@ class RegistrationActivity : ComponentActivity() {
 
 @Composable
 fun TelaCadastro(
-    registrar: (String, String, String) -> Unit,
+    registrar: (String, String, String, String) -> Unit,
     voltar: () -> Unit
 ) {
     TelaCadastroUI(

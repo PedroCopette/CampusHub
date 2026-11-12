@@ -302,7 +302,9 @@ class EventsActivity : ComponentActivity() {
             .get()
             .addOnSuccessListener { resultado ->
                 val docs = resultado.documents.map { Pair(it.id, it.data ?: emptyMap()) }
-                eventosCarregados = EventsManager.MapearListaDocumentos(docs)
+                eventosCarregados = EventsManager.MapearListaDocumentos(
+                    docs.filter { (_, dados) -> dados["publicado"] != false && dados["encerrado"] != true }
+                )
                 carregandoEventos = false
                 erroAoCarregar = false
             }

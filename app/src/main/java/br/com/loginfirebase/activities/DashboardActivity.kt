@@ -21,7 +21,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -34,6 +38,7 @@ import androidx.compose.ui.unit.sp
 import br.com.loginfirebase.OpcaoDashboard
 import br.com.loginfirebase.ui.theme.LoginFirebaseTheme
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 
 private val CampusBackground = Color(0xFFF3F7FD)
 private val CampusText = Color(0xFF142748)
@@ -61,9 +66,31 @@ class DashboardActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         auth = FirebaseAuth.getInstance()
+        auth.currentUser?.uid?.let { uid ->
+            FirebaseFirestore.getInstance().collection("usuarios").document(uid).get()
+                .addOnSuccessListener { snapshot ->
+                    if (snapshot.exists() && snapshot.getString("perfil") != null) perfilUsuario = snapshot.getString("perfil")!!
+                    else solicitarPerfil = true
+                }
+                .addOnFailureListener { android.widget.Toast.makeText(this, "Não foi possível carregar seu perfil. Confira as regras do Firestore.", android.widget.Toast.LENGTH_LONG).show() }
+        }
 
         setContent {
             LoginFirebaseTheme {
+
+                if (solicitarPerfil) {
+                    AlertDialog(
+                        onDismissRequest = {},
+                        title = { Text("Complete seu perfil") },
+                        text = { Text("Escolha o tipo da sua conta para liberar as funções correspondentes.") },
+                        confirmButton = {
+                            TextButton(onClick = { salvarPerfil("organizador") }) { Text("Sou organizador") }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { salvarPerfil("aluno") }) { Text("Sou aluno") }
+                        }
+                    )
+                }
 
                 Column(
                     modifier = Modifier
@@ -168,6 +195,11 @@ class DashboardActivity : ComponentActivity() {
                             fontSize = 14.sp
                         )
 
+                        if (perfilUsuario == "organizador") {
+                            OpcaoDashboard(icone = "calendario", titulo = "Gerenciar Eventos", descricao = "Crie e edite seus eventos", aoClicar = { startActivity(Intent(this@DashboardActivity, OrganizerEventsActivity::class.java)) })
+                            Spacer(modifier = Modifier.height(13.dp))
+                        }
+
                         Spacer(modifier = Modifier.height(22.dp))
 
                         OpcaoDashboard(
@@ -243,5 +275,16 @@ class DashboardActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    private var perfilUsuario by mutableStateOf("aluno")
+    private var solicitarPerfil by mutableStateOf(false)
+
+    private fun salvarPerfil(perfil: String) {
+        val user = auth.currentUser ?: return
+        val dados = mapOf("nome" to (user.displayName ?: ""), "email" to (user.email ?: ""), "perfil" to perfil)
+        FirebaseFirestore.getInstance().collection("usuarios").document(user.uid).set(dados)
+            .addOnSuccessListener { perfilUsuario = perfil; solicitarPerfil = false }
+            .addOnFailureListener { erro -> android.widget.Toast.makeText(this, "Perfil não salvo: ${erro.localizedMessage}. Publique as regras do Firestore.", android.widget.Toast.LENGTH_LONG).show() }
     }
 }
