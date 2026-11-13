@@ -19,8 +19,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import br.com.loginfirebase.MediaUtils
+import br.com.loginfirebase.LocalMediaMetadata
 import br.com.loginfirebase.ui.theme.LoginFirebaseTheme
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import java.io.File
 
 class EventAudioActivity : ComponentActivity() {
@@ -31,6 +33,7 @@ class EventAudioActivity : ComponentActivity() {
 
     private val eventId by lazy { sanitizarId(intent.getStringExtra("idEvento").orEmpty()) }
     private val uid by lazy { FirebaseAuth.getInstance().currentUser?.uid }
+    private var authorName by mutableStateOf("")
     private var audios by mutableStateOf<List<File>>(emptyList())
     private var gravando by mutableStateOf(false)
     private var reproduzindo by mutableStateOf<String?>(null)
@@ -39,6 +42,9 @@ class EventAudioActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val currentUser = FirebaseAuth.getInstance().currentUser
+        authorName = currentUser?.displayName?.takeIf { it.isNotBlank() } ?: currentUser?.email ?: "Usuário"
+        currentUser?.uid?.let { id -> FirebaseFirestore.getInstance().collection("usuarios").document(id).get().addOnSuccessListener { authorName = it.getString("nome")?.takeIf(String::isNotBlank) ?: authorName } }
         carregarAudios()
         setContent {
             LoginFirebaseTheme {
@@ -61,13 +67,14 @@ class EventAudioActivity : ComponentActivity() {
                     if (audios.isEmpty()) Text("Ainda não há áudios publicados para este evento.")
                     else LazyColumn(Modifier.weight(1f)) {
                         items(audios, key = { it.name }) { arquivo ->
-                            val autorUid = arquivo.name.substringBefore('_')
+                            val metadata = remember(arquivo.lastModified()) { LocalMediaMetadata.ler(arquivo) }
                             Card(Modifier.fillMaxWidth().padding(vertical = 5.dp)) {
                                 Column(Modifier.padding(12.dp)) {
-                                    Text("Áudio · ${java.text.SimpleDateFormat("dd/MM/yyyy HH:mm", java.util.Locale.getDefault()).format(java.util.Date(arquivo.lastModified()))}")
+                                    val nomeExibido = if (metadata.usuarioId == uid) authorName else metadata.nomeAutor
+                                    Text("Por $nomeExibido · ${java.text.SimpleDateFormat("dd/MM/yyyy HH:mm", java.util.Locale.getDefault()).format(java.util.Date(metadata.dataMillis))}")
                                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                         OutlinedButton(onClick = { if (reproduzindo == arquivo.name) pararReproducao() else reproduzir(arquivo) }, modifier = Modifier.weight(1f)) { Text(if (reproduzindo == arquivo.name) "Parar áudio" else "Reproduzir") }
-                                        if (uid == autorUid) TextButton(onClick = { excluir(arquivo) }) { Text("Excluir") }
+                                        if (uid == metadata.usuarioId) TextButton(onClick = { excluir(arquivo) }) { Text("Excluir") }
                                     }
                                 }
                             }
@@ -94,6 +101,7 @@ class EventAudioActivity : ComponentActivity() {
             novoRecorder.setOutputFile(arquivo.absolutePath)
             novoRecorder.setOnInfoListener { _, info, _ -> if (info == MediaRecorder.MEDIA_RECORDER_INFO_MAX_DURATION_REACHED) pararGravacao() }
             novoRecorder.prepare(); novoRecorder.start()
+            LocalMediaMetadata.salvar(arquivo, usuario, authorName)
             recorder = novoRecorder; gravando = true
         } catch (e: Exception) {
             recorder?.release(); recorder = null; gravando = false
@@ -146,7 +154,7 @@ class EventAudioActivity : ComponentActivity() {
 
     private fun excluir(arquivo: File) {
         if (uid != arquivo.name.substringBefore('_')) return
-        if (arquivo.delete()) { if (reproduzindo == arquivo.name) { player?.release(); player = null; reproduzindo = null }; carregarAudios() }
+        if (LocalMediaMetadata.excluir(arquivo)) { if (reproduzindo == arquivo.name) { player?.release(); player = null; reproduzindo = null }; carregarAudios() }
         else Toast.makeText(this, "Não foi possível excluir o áudio.", Toast.LENGTH_SHORT).show()
     }
 

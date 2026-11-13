@@ -21,8 +21,10 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import br.com.loginfirebase.MediaUtils
+import br.com.loginfirebase.LocalMediaMetadata
 import br.com.loginfirebase.ui.theme.LoginFirebaseTheme
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import java.io.File
 
 class EventVideoActivity : ComponentActivity() {
@@ -33,11 +35,15 @@ class EventVideoActivity : ComponentActivity() {
 
     private val eventId by lazy { sanitizarId(intent.getStringExtra("idEvento").orEmpty()) }
     private val uid by lazy { FirebaseAuth.getInstance().currentUser?.uid }
+    private var authorName by mutableStateOf("")
     private var videos by mutableStateOf<List<File>>(emptyList())
     private var videoCaptura: File? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val currentUser = FirebaseAuth.getInstance().currentUser
+        authorName = currentUser?.displayName?.takeIf { it.isNotBlank() } ?: currentUser?.email ?: "Usuário"
+        currentUser?.uid?.let { id -> FirebaseFirestore.getInstance().collection("usuarios").document(id).get().addOnSuccessListener { authorName = it.getString("nome")?.takeIf(String::isNotBlank) ?: authorName } }
         carregarVideos()
         setContent {
             LoginFirebaseTheme {
@@ -64,16 +70,17 @@ class EventVideoActivity : ComponentActivity() {
                     if (videos.isEmpty()) Text("Ainda não há vídeos publicados para este evento.")
                     else LazyColumn(Modifier.weight(1f)) {
                         items(videos, key = { it.name }) { arquivo ->
-                            val autorUid = arquivo.name.substringBefore('_')
+                            val metadata = remember(arquivo.lastModified()) { LocalMediaMetadata.ler(arquivo) }
                             Card(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
                                 Column(Modifier.padding(12.dp)) {
-                                    Text("Vídeo · ${java.text.SimpleDateFormat("dd/MM/yyyy HH:mm", java.util.Locale.getDefault()).format(java.util.Date(arquivo.lastModified()))}")
+                                    val nomeExibido = if (metadata.usuarioId == uid) authorName else metadata.nomeAutor
+                                    Text("Por $nomeExibido · ${java.text.SimpleDateFormat("dd/MM/yyyy HH:mm", java.util.Locale.getDefault()).format(java.util.Date(metadata.dataMillis))}")
                                     AndroidView(
                                         factory = { context -> VideoView(context).apply { setVideoURI(Uri.fromFile(arquivo)); setMediaController(MediaController(context).also { it.setAnchorView(this) }) } },
                                         update = { view -> if (view.tag != arquivo.absolutePath) { view.tag = arquivo.absolutePath; view.setVideoURI(Uri.fromFile(arquivo)) } },
                                         modifier = Modifier.fillMaxWidth().height(220.dp)
                                     )
-                                    if (uid == autorUid) TextButton(onClick = { excluir(arquivo) }) { Text("Excluir meu vídeo") }
+                                    if (uid == metadata.usuarioId) TextButton(onClick = { excluir(arquivo) }) { Text("Excluir meu vídeo") }
                                 }
                             }
                         }
@@ -118,6 +125,7 @@ class EventVideoActivity : ComponentActivity() {
             if (origem.length() > 30L * 1024 * 1024) throw IllegalArgumentException("O vídeo deve ter até 30 MB.")
             val destino = File(pastaVideos(), "${autor}_${System.currentTimeMillis()}.mp4")
             origem.copyTo(destino, overwrite = true)
+            LocalMediaMetadata.salvar(destino, autor, authorName)
             origem.delete(); videoCaptura = null; carregarVideos()
             Toast.makeText(this, "Vídeo publicado neste dispositivo.", Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {
@@ -128,7 +136,7 @@ class EventVideoActivity : ComponentActivity() {
 
     private fun excluir(arquivo: File) {
         if (uid != arquivo.name.substringBefore('_')) return
-        if (arquivo.delete()) carregarVideos() else Toast.makeText(this, "Não foi possível excluir o vídeo.", Toast.LENGTH_SHORT).show()
+        if (LocalMediaMetadata.excluir(arquivo)) carregarVideos() else Toast.makeText(this, "Não foi possível excluir o vídeo.", Toast.LENGTH_SHORT).show()
     }
 
     private fun avisoLogin() = Toast.makeText(this, "Faça login para publicar um vídeo.", Toast.LENGTH_SHORT).show()

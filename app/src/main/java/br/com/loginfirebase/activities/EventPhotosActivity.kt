@@ -19,8 +19,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.unit.dp
 import br.com.loginfirebase.MediaUtils
+import br.com.loginfirebase.LocalMediaMetadata
 import br.com.loginfirebase.ui.theme.LoginFirebaseTheme
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import java.io.File
 import java.io.FileOutputStream
 
@@ -31,10 +33,14 @@ class EventPhotosActivity : ComponentActivity() {
     }
 
     private val eventId by lazy { sanitizarId(intent.getStringExtra("idEvento").orEmpty()) }
+    private val user by lazy { FirebaseAuth.getInstance().currentUser }
+    private var authorName by mutableStateOf("")
     private var photos by mutableStateOf<List<File>>(emptyList())
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        authorName = user?.displayName?.takeIf { it.isNotBlank() } ?: user?.email ?: "Usuário"
+        user?.uid?.let { uid -> FirebaseFirestore.getInstance().collection("usuarios").document(uid).get().addOnSuccessListener { authorName = it.getString("nome")?.takeIf(String::isNotBlank) ?: authorName } }
         carregarFotos()
         setContent {
             LoginFirebaseTheme {
@@ -57,7 +63,19 @@ class EventPhotosActivity : ComponentActivity() {
                     else LazyColumn(Modifier.weight(1f)) {
                         items(photos, key = { it.name }) { file ->
                             val bitmap = remember(file.lastModified()) { BitmapFactory.decodeFile(file.absolutePath) }
-                            bitmap?.let { Image(it.asImageBitmap(), contentDescription = "Foto publicada", modifier = Modifier.fillMaxWidth().height(240.dp).padding(vertical = 6.dp)) }
+                            val metadata = remember(file.lastModified()) { LocalMediaMetadata.ler(file) }
+                            Card(Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+                                Column(Modifier.padding(10.dp)) {
+                                    val nomeExibido = when {
+                                        metadata.usuarioId == user?.uid -> authorName
+                                        metadata.usuarioId.isBlank() -> authorName
+                                        else -> metadata.nomeAutor
+                                    }
+                                    Text("Por $nomeExibido · ${java.text.SimpleDateFormat("dd/MM/yyyy HH:mm", java.util.Locale.getDefault()).format(java.util.Date(metadata.dataMillis))}")
+                                    bitmap?.let { Image(it.asImageBitmap(), contentDescription = "Foto publicada", modifier = Modifier.fillMaxWidth().height(240.dp).padding(vertical = 6.dp)) }
+                                    if (user?.uid == metadata.usuarioId) TextButton(onClick = { excluirFoto(file) }) { Text("Excluir minha foto") }
+                                }
+                            }
                         }
                     }
                     OutlinedButton(onClick = { finish() }, modifier = Modifier.fillMaxWidth()) { Text("Voltar") }
@@ -74,11 +92,19 @@ class EventPhotosActivity : ComponentActivity() {
 
     private fun salvarBitmap(bitmap: Bitmap) {
         try {
-            val arquivo = File(pastaFotos(), "foto_${System.currentTimeMillis()}.jpg")
+            val uid = user?.uid ?: run { avisoLogin(); return }
+            val arquivo = File(pastaFotos(), "${uid}_${System.currentTimeMillis()}.jpg")
             FileOutputStream(arquivo).use { bitmap.compress(Bitmap.CompressFormat.JPEG, 88, it) }
+            LocalMediaMetadata.salvar(arquivo, uid, authorName)
             carregarFotos()
             Toast.makeText(this, "Foto publicada neste dispositivo.", Toast.LENGTH_SHORT).show()
         } catch (e: Exception) { Toast.makeText(this, "Não foi possível salvar a foto.", Toast.LENGTH_LONG).show() }
+    }
+
+    private fun excluirFoto(arquivo: File) {
+        if (user?.uid != LocalMediaMetadata.ler(arquivo).usuarioId) return
+        if (LocalMediaMetadata.excluir(arquivo)) carregarFotos()
+        else Toast.makeText(this, "Não foi possível excluir a foto.", Toast.LENGTH_SHORT).show()
     }
 
     private fun salvarDaGaleria(uri: Uri) {
