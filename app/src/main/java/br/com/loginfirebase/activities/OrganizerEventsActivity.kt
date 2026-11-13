@@ -2,6 +2,10 @@ package br.com.loginfirebase.activities
 
 import android.os.Bundle
 import android.net.Uri
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.util.Base64
+import java.io.ByteArrayOutputStream
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -21,7 +25,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.storage.FirebaseStorage
 
 private val OrganizerNavy = Color(0xFF172D59)
 private val OrganizerBlue = Color(0xFF2864D7)
@@ -83,13 +86,15 @@ class OrganizerEventsActivity : ComponentActivity() {
                                 val id = editId ?: db.collection("eventos").document().id
                                 val anterior = items.firstOrNull { it.first == id }?.second
                                 val uriFoto = imagemSelecionada
-                                val fotoRef = if (uriFoto != null) FirebaseStorage.getInstance("gs://login-dc4d7.firebasestorage.app").reference.child("eventos/$uid/$id/capa_${System.currentTimeMillis()}.jpg") else null
-                                val upload = if (uriFoto != null && fotoRef != null) fotoRef.putFile(uriFoto).continueWithTask { task ->
-                                    if (!task.isSuccessful) throw (task.exception ?: Exception("Falha ao enviar foto"))
-                                    fotoRef.downloadUrl
-                                }.addOnSuccessListener { downloadUri ->
-                                    salvarEvento(id, uid, titulo, descricao, categoria, data, horario, endereco, cap, downloadUri.toString(), anterior, onFinish = { salvando=false; titulo="";data="";horario="";endereco="";descricao="";categoria="Acadêmico";capacidade="";imagemUrl="";imagemSelecionada=null;editId=null;carregar() }, onError = { salvando=false; Toast.makeText(this@OrganizerEventsActivity, it, Toast.LENGTH_LONG).show() })
-                                }.addOnFailureListener { salvando=false; Toast.makeText(this@OrganizerEventsActivity, "Falha ao enviar a foto: ${it.localizedMessage}", Toast.LENGTH_LONG).show() }
+                                if (uriFoto != null) {
+                                    try {
+                                        val imagemBase64 = codificarImagem(uriFoto)
+                                        salvarEvento(id, uid, titulo, descricao, categoria, data, horario, endereco, cap, imagemBase64, anterior, onFinish = { salvando=false; titulo="";data="";horario="";endereco="";descricao="";categoria="Acadêmico";capacidade="";imagemUrl="";imagemSelecionada=null;editId=null;carregar() }, onError = { salvando=false; Toast.makeText(this@OrganizerEventsActivity, it, Toast.LENGTH_LONG).show() })
+                                    } catch (e: Exception) {
+                                        salvando = false
+                                        Toast.makeText(this@OrganizerEventsActivity, "Falha ao processar a imagem: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+                                    }
+                                }
                                 else null
                                 if (uriFoto == null) salvarEvento(id, uid, titulo, descricao, categoria, data, horario, endereco, cap, imagemUrl, anterior, onFinish = { salvando=false;titulo="";data="";horario="";endereco="";descricao="";categoria="Acadêmico";capacidade="";imagemUrl="";editId=null;carregar() }, onError = { salvando=false;Toast.makeText(this@OrganizerEventsActivity,it,Toast.LENGTH_LONG).show() })
                             }, modifier = Modifier.fillMaxWidth(), enabled = !salvando) { Text(if (salvando) "Salvando..." else if (editId == null) "Salvar rascunho" else "Salvar alterações") }
@@ -120,6 +125,24 @@ class OrganizerEventsActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    private fun codificarImagem(uri: Uri): String {
+        val original = contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it) }
+            ?: throw IllegalArgumentException("Não foi possível abrir a imagem selecionada.")
+        val maiorLado = 1024
+        val escala = minOf(1f, maiorLado.toFloat() / maxOf(original.width, original.height))
+        val bitmap = if (escala < 1f) Bitmap.createScaledBitmap(original, (original.width * escala).toInt(), (original.height * escala).toInt(), true) else original
+        var qualidade = 82
+        var bytes: ByteArray
+        do {
+            val output = ByteArrayOutputStream()
+            bitmap.compress(Bitmap.CompressFormat.JPEG, qualidade, output)
+            bytes = output.toByteArray()
+            qualidade -= 8
+        } while (bytes.size > 650_000 && qualidade >= 34)
+        if (bytes.size > 700_000) throw IllegalArgumentException("A imagem ainda ficou grande demais. Escolha uma imagem menor.")
+        return "data:image/jpeg;base64," + Base64.encodeToString(bytes, Base64.NO_WRAP)
     }
 
     @Composable private fun CampoEvento(label: String, value: String, onValueChange: (String) -> Unit, singleLine: Boolean = true, keyboardType: KeyboardType = KeyboardType.Text) {
