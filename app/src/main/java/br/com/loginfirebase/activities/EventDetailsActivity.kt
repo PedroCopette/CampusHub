@@ -1,22 +1,30 @@
 package br.com.loginfirebase.activities
 
 import android.os.Bundle
+import android.content.Intent
+import android.graphics.Bitmap
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.unit.dp
 import br.com.loginfirebase.EventDetailsUtils
 import br.com.loginfirebase.MyEventsManager
 import br.com.loginfirebase.ui.theme.LoginFirebaseTheme
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.zxing.BarcodeFormat
+import com.google.zxing.qrcode.QRCodeWriter
+import com.journeyapps.barcodescanner.ScanContract
+import com.journeyapps.barcodescanner.ScanOptions
 
 class EventDetailsActivity : ComponentActivity() {
     companion object {
@@ -40,7 +48,14 @@ class EventDetailsActivity : ComponentActivity() {
     private var organizador by mutableStateOf(false)
     private var carregandoInscritos by mutableStateOf(false)
     private data class InscritoPainel(val id: String, val nome: String, val checkin: Boolean)
+    private data class EstadoTela(val inscrito: Boolean, val posicao: Int?, val vagas: Int, val capacidade: Int, val primeiro: Boolean, val confirmada: Boolean)
     private var inscritos by mutableStateOf<List<InscritoPainel>>(emptyList())
+    private var inscricaoConfirmada by mutableStateOf(false)
+    private var qrInscricao by mutableStateOf<Bitmap?>(null)
+    private val scanner = registerForActivityResult(ScanContract()) { result ->
+        val conteudo = result.contents ?: return@registerForActivityResult
+        validarQrCheckin(conteudo)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -72,9 +87,15 @@ class EventDetailsActivity : ComponentActivity() {
                                 }
                             }
                         }
+                        Button(onClick = { iniciarScanner() }, modifier = Modifier.fillMaxWidth(), enabled = !operando) { Text("Escanear QR de check-in") }
                     }
                     if (carregando) CircularProgressIndicator()
                     else if (perfil == "aluno") {
+                        if (inscrito && inscricaoConfirmada) {
+                            Text("Seu QR Code de inscrição", style = MaterialTheme.typography.titleMedium)
+                            qrInscricao?.let { Image(bitmap = it.asImageBitmap(), contentDescription = "QR Code da inscrição", modifier = Modifier.size(220.dp).align(androidx.compose.ui.Alignment.CenterHorizontally)) }
+                            Text("Mostre este código ao organizador no evento.")
+                        }
                         when {
                             inscrito -> Button(onClick = { cancelarInscricao() }, modifier = Modifier.fillMaxWidth(), enabled = !operando) { Text(if (operando) "Aguarde..." else "Cancelar inscrição") }
                             aguardando -> {
@@ -102,16 +123,63 @@ class EventDetailsActivity : ComponentActivity() {
             val queue = event.get("filaEspera") as? Map<*, *> ?: emptyMap<Any, Any>()
             val pos = (queue[user.uid] as? Number)?.toInt()
             val first = queue.entries.minByOrNull { (it.value as? Number)?.toLong() ?: Long.MAX_VALUE }?.key == user.uid
-            Triple(signup.exists(), pos, Pair(Pair(event.intValue("vagasOcupadas") ?: 0, event.intValue("capacidadeMaxima") ?: 0), first))
+            EstadoTela(signup.exists(), pos, event.intValue("vagasOcupadas") ?: 0, event.intValue("capacidadeMaxima") ?: 0, first, signup.getString("status") == "confirmada")
         }.addOnSuccessListener { state ->
-            inscrito = state.first; aguardando = state.second != null; posicaoFila = state.second
-            vagas = state.third.first.first; capacidade = state.third.first.second; carregando = false
-            primeiroDaFila = aguardando && state.third.second
+            inscrito = state.inscrito; aguardando = state.posicao != null; posicaoFila = state.posicao
+            vagas = state.vagas; capacidade = state.capacidade; carregando = false
+            primeiroDaFila = aguardando && state.primeiro
+            inscricaoConfirmada = state.confirmada
+            qrInscricao = if (inscrito && inscricaoConfirmada) gerarQrInscricao(user.uid) else null
             eventRef.get().addOnSuccessListener { event ->
                 organizador = event.getString("organizadorId") == user.uid
                 if (organizador) carregarInscritos()
             }
         }.addOnFailureListener { carregando = false; Toast.makeText(this, "Falha ao consultar vagas.", Toast.LENGTH_SHORT).show() }
+    }
+
+    private fun gerarQrInscricao(uid: String): Bitmap? = try {
+        val matriz = QRCodeWriter().encode("campushub://checkin/$eventId/$uid", BarcodeFormat.QR_CODE, 600, 600)
+        Bitmap.createBitmap(600, 600, Bitmap.Config.ARGB_8888).also { bitmap ->
+            for (x in 0 until 600) for (y in 0 until 600) bitmap.setPixel(x, y, if (matriz[x, y]) android.graphics.Color.BLACK else android.graphics.Color.WHITE)
+        }
+    } catch (e: Exception) { Log.e("EventCheckin", "Não foi possível gerar QR", e); null }
+
+    private fun iniciarScanner() {
+        val options = ScanOptions().apply {
+            setDesiredBarcodeFormats(ScanOptions.QR_CODE)
+            setPrompt("Escaneie o QR Code do inscrito")
+            setBeepEnabled(false)
+            setOrientationLocked(true)
+        }
+        scanner.launch(options)
+    }
+
+    private fun validarQrCheckin(conteudo: String) {
+        val partes = conteudo.split("/")
+        if (partes.size != 5 || partes[0] != "campushub:" || partes[2] != "checkin" || partes[3] != eventId) {
+            Toast.makeText(this, "QR Code inválido para este evento.", Toast.LENGTH_LONG).show(); return
+        }
+        val uidAluno = partes[4]
+        val user = auth.currentUser ?: return
+        val eventRef = db.collection("eventos").document(eventId)
+        val signupRef = db.collection("inscricoes").document("${uidAluno}_$eventId")
+        operando = true
+        db.runTransaction { tx ->
+            val event = tx.get(eventRef)
+            val signup = tx.get(signupRef)
+            check(event.getString("organizadorId") == user.uid) { "Somente o organizador pode validar o QR." }
+            check(signup.exists() && signup.getString("status") == "confirmada") { "Inscrição não confirmada." }
+            check(signup.getBoolean("checkin") != true) { "Este QR Code já foi validado." }
+            tx.update(signupRef, "checkin", true)
+            true
+        }.addOnSuccessListener {
+            operando = false
+            Toast.makeText(this, "Check-in validado com sucesso!", Toast.LENGTH_LONG).show()
+            carregarInscritos()
+        }.addOnFailureListener { erro ->
+            operando = false
+            Toast.makeText(this, erro.message ?: "Não foi possível validar o QR.", Toast.LENGTH_LONG).show()
+        }
     }
 
     private fun carregarInscritos() {
