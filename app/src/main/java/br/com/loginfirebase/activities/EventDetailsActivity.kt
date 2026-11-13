@@ -39,7 +39,8 @@ class EventDetailsActivity : ComponentActivity() {
     private var operando by mutableStateOf(false)
     private var organizador by mutableStateOf(false)
     private var carregandoInscritos by mutableStateOf(false)
-    private var inscritos by mutableStateOf<List<Pair<String, Boolean>>>(emptyList())
+    private data class InscritoPainel(val id: String, val nome: String, val checkin: Boolean)
+    private var inscritos by mutableStateOf<List<InscritoPainel>>(emptyList())
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -56,11 +57,19 @@ class EventDetailsActivity : ComponentActivity() {
                     Text(if (capacidade > 0) "Vagas: $vagas de $capacidade" else "Vagas limitadas", style = MaterialTheme.typography.titleMedium)
                     if (organizador) {
                         Text("Acompanhamento · ${inscritos.size} inscritos", style = MaterialTheme.typography.titleLarge)
-                        Text("Check-in realizado: ${inscritos.count { it.second }}")
+                        Text("Check-in realizado: ${inscritos.count { it.checkin }}")
                         if (carregandoInscritos) CircularProgressIndicator()
                         else LazyColumn(Modifier.weight(1f, fill = false)) {
-                            items(inscritos) { (nome, checkin) ->
-                                Text("$nome · ${if (checkin) "Check-in realizado" else "Pendente"}", modifier = Modifier.padding(vertical = 6.dp))
+                            items(inscritos) { inscrito ->
+                                Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                                    Column(Modifier.weight(1f).padding(end = 8.dp)) {
+                                        Text(inscrito.nome, style = MaterialTheme.typography.bodyMedium)
+                                        Text(if (inscrito.checkin) "Check-in realizado" else "Pendente", style = MaterialTheme.typography.bodySmall)
+                                    }
+                                    OutlinedButton(onClick = { atualizarCheckin(inscrito) }, enabled = !operando) {
+                                        Text(if (inscrito.checkin) "Desfazer" else "Marcar presença")
+                                    }
+                                }
                             }
                         }
                     }
@@ -111,11 +120,24 @@ class EventDetailsActivity : ComponentActivity() {
             .addOnSuccessListener { docs ->
                 inscritos = docs.documents.map { doc ->
                     val nome = doc.getString("usuarioNome") ?: doc.getString("nomeUsuario") ?: doc.getString("usuarioEmail") ?: doc.getString("usuarioId") ?: "Aluno"
-                    nome to (doc.getBoolean("checkin") ?: doc.getBoolean("checkIn") ?: doc.getBoolean("presente") ?: false)
-                }.sortedBy { it.first.lowercase() }
+                    InscritoPainel(doc.id, nome, doc.getBoolean("checkin") ?: doc.getBoolean("checkIn") ?: doc.getBoolean("presente") ?: false)
+                }.sortedBy { it.nome.lowercase() }
                 carregandoInscritos = false
             }
             .addOnFailureListener { carregandoInscritos = false; Toast.makeText(this, "Falha ao carregar inscritos.", Toast.LENGTH_SHORT).show() }
+    }
+
+    private fun atualizarCheckin(inscrito: InscritoPainel) {
+        operando = true
+        db.collection("inscricoes").document(inscrito.id).update("checkin", !inscrito.checkin)
+            .addOnSuccessListener {
+                operando = false
+                carregarInscritos()
+            }
+            .addOnFailureListener { erro ->
+                operando = false
+                Toast.makeText(this, "Falha ao atualizar presença: ${erro.localizedMessage}", Toast.LENGTH_LONG).show()
+            }
     }
 
     private fun inscreverOuEntrarNaFila() {

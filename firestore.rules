@@ -58,8 +58,13 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.perfil == 'aluno';
 
       allow update: if request.auth != null
-        && resource.data.usuarioId == request.auth.uid
-        && request.resource.data.usuarioId == request.auth.uid;
+        && ((resource.data.usuarioId == request.auth.uid
+          && request.resource.data.usuarioId == request.auth.uid)
+          || (get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.perfil == 'organizador'
+            && exists(/databases/$(database)/documents/eventos/$(resource.data.idEvento))
+            && get(/databases/$(database)/documents/eventos/$(resource.data.idEvento)).data.organizadorId == request.auth.uid
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['checkin'])
+            && request.resource.data.checkin is bool));
     }
 
 
