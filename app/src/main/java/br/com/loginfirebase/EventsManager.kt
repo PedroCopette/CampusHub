@@ -19,9 +19,9 @@ object EventsManager {
         val nome = dados["nomeEvento"] as? String ?: return null
         val data = dados["dataEvento"] as? String ?: return null
         val horario = dados["horarioEvento"] as? String ?: return null
-        val local = dados["localEvento"] as? String ?: return null
-        val descricao = dados["descricaoEvento"] as? String ?: return null
-        val categoria = dados["categoria"] as? String ?: return null
+        val local = dados["localEvento"] as? String ?: dados["enderecoEvento"] as? String ?: return null
+        val descricao = dados["descricaoEvento"] as? String ?: ""
+        val categoria = dados["categoria"] as? String ?: "Acadêmico"
         val endereco = (dados["enderecoEvento"] as? String) ?: obterEnderecoPadrao(id)
 
         return EventoBusca(

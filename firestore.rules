@@ -8,7 +8,29 @@ service cloud.firestore {
       function organizer() { return request.auth != null && exists(/databases/$(database)/documents/usuarios/$(request.auth.uid)) && get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.perfil == 'organizador'; }
       function validEvent(data) { return data.keys().hasAll(['nomeEvento','dataEvento','horarioEvento','localEvento','descricaoEvento','categoria','enderecoEvento','organizadorId','capacidadeMaxima','imagemUrl','publicado','encerrado']) && data.nomeEvento is string && data.nomeEvento.size() > 0 && data.nomeEvento.size() <= 120 && data.dataEvento is string && data.horarioEvento is string && data.localEvento is string && data.descricaoEvento is string && data.categoria is string && data.enderecoEvento is string && data.organizadorId == request.auth.uid && data.capacidadeMaxima is int && data.capacidadeMaxima > 0 && data.imagemUrl is string && data.publicado is bool && data.encerrado is bool; }
       allow create: if organizer() && validEvent(request.resource.data);
-      allow update: if organizer() && resource.data.organizadorId == request.auth.uid && request.resource.data.organizadorId == resource.data.organizadorId && validEvent(request.resource.data);
+      allow update: if (organizer() && resource.data.organizadorId == request.auth.uid && request.resource.data.organizadorId == resource.data.organizadorId && validEvent(request.resource.data))
+        || (request.auth != null
+          && exists(/databases/$(database)/documents/usuarios/$(request.auth.uid))
+          && get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.perfil == 'aluno'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['vagasOcupadas','proximaPosicaoLista','filaEspera'])
+          && request.resource.data.vagasOcupadas is int
+          && request.resource.data.vagasOcupadas >= 0
+          && (
+            // New direct registration: increment, never beyond a valid capacity.
+            (resource.data.vagasOcupadas is int
+              && resource.data.capacidadeMaxima is int
+              && request.resource.data.vagasOcupadas == resource.data.vagasOcupadas + 1
+              && request.resource.data.vagasOcupadas <= resource.data.capacidadeMaxima)
+            // Cancellation: decrement is allowed even for legacy events whose capacity is missing.
+            || (resource.data.vagasOcupadas is int
+              && request.resource.data.vagasOcupadas == resource.data.vagasOcupadas - 1)
+            || (!('vagasOcupadas' in resource.data) && request.resource.data.vagasOcupadas == 0)
+            // Waitlist updates do not change the occupied seat count.
+            || (request.resource.data.vagasOcupadas == resource.data.vagasOcupadas
+              && request.resource.data.filaEspera is map
+              && (request.resource.data.proximaPosicaoLista == resource.data.proximaPosicaoLista + 1
+                || request.resource.data.filaEspera != resource.data.filaEspera))
+          ));
       allow delete: if organizer() && resource.data.organizadorId == request.auth.uid;
     }
 
@@ -20,17 +42,26 @@ service cloud.firestore {
     }
 
     match /inscricoes/{inscricaoId} {
-      allow read, delete: if request.auth != null
+      allow read: if request.auth != null
+        && (inscricaoId.matches(request.auth.uid + '_.*')
+          || resource.data.usuarioId == request.auth.uid
+          || (get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.perfil == 'organizador'
+            && exists(/databases/$(database)/documents/eventos/$(resource.data.idEvento))
+            && get(/databases/$(database)/documents/eventos/$(resource.data.idEvento)).data.organizadorId == request.auth.uid));
+
+      allow delete: if request.auth != null
         && resource.data.usuarioId == request.auth.uid;
 
       allow create: if request.auth != null
         && request.resource.data.usuarioId == request.auth.uid
+        && inscricaoId == request.auth.uid + '_' + request.resource.data.idEvento
         && get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.perfil == 'aluno';
 
       allow update: if request.auth != null
         && resource.data.usuarioId == request.auth.uid
         && request.resource.data.usuarioId == request.auth.uid;
     }
+
 
     match /favoritos/{favoritoId} {
       allow read, delete: if request.auth != null

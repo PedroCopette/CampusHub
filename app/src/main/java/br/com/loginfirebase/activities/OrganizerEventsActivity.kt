@@ -1,10 +1,12 @@
 package br.com.loginfirebase.activities
 
 import android.os.Bundle
-import android.util.Patterns
+import android.net.Uri
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -19,6 +21,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.storage.FirebaseStorage
 
 private val OrganizerNavy = Color(0xFF172D59)
 private val OrganizerBlue = Color(0xFF2864D7)
@@ -47,8 +50,10 @@ class OrganizerEventsActivity : ComponentActivity() {
                 var categoria by remember { mutableStateOf("Acadêmico") }
                 var capacidade by remember { mutableStateOf("") }
                 var imagemUrl by remember { mutableStateOf("") }
+                var imagemSelecionada by remember { mutableStateOf<Uri?>(null) }
                 var editId by remember { mutableStateOf<String?>(null) }
                 var salvando by remember { mutableStateOf(false) }
+                val seletorImagem = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri -> imagemSelecionada = uri }
 
                 Column(Modifier.fillMaxSize().background(Color(0xFFF3F7FD)).statusBarsPadding().navigationBarsPadding().verticalScroll(rememberScrollState()).padding(20.dp)) {
                     Text("Gerenciar eventos", style = MaterialTheme.typography.headlineMedium, color = OrganizerNavy)
@@ -65,7 +70,8 @@ class OrganizerEventsActivity : ComponentActivity() {
                             CampoEvento("Horário", horario, { horario = it })
                             CampoEvento("Endereço", endereco, { endereco = it })
                             CampoEvento("Capacidade máxima", capacidade, { capacidade = it }, keyboardType = KeyboardType.Number)
-                            CampoEvento("URL da imagem (https://...)", imagemUrl, { imagemUrl = it }, keyboardType = KeyboardType.Uri)
+                            OutlinedButton(onClick = { seletorImagem.launch("image/*") }, modifier = Modifier.fillMaxWidth()) { Text(if (imagemSelecionada != null) "Trocar foto selecionada" else if (imagemUrl.isNotBlank()) "Trocar foto do evento" else "Escolher foto do dispositivo") }
+                            Text(if (imagemSelecionada != null) "Nova foto selecionada" else if (imagemUrl.isNotBlank()) "O evento já possui uma foto" else "Nenhuma foto selecionada", color = Color(0xFF657694), style = MaterialTheme.typography.bodySmall)
                             Spacer(Modifier.height(10.dp))
                             Button(onClick = {
                                 val uid = user?.uid ?: return@Button
@@ -73,25 +79,21 @@ class OrganizerEventsActivity : ComponentActivity() {
                                 if (titulo.isBlank() || descricao.isBlank() || categoria.isBlank() || data.isBlank() || horario.isBlank() || endereco.isBlank() || cap == null || cap <= 0) {
                                     Toast.makeText(this@OrganizerEventsActivity, "Preencha os campos e informe uma capacidade válida.", Toast.LENGTH_LONG).show(); return@Button
                                 }
-                                if (imagemUrl.isNotBlank() && !Patterns.WEB_URL.matcher(imagemUrl).matches()) {
-                                    Toast.makeText(this@OrganizerEventsActivity, "Informe uma URL válida para a imagem.", Toast.LENGTH_SHORT).show(); return@Button
-                                }
                                 salvando = true
                                 val id = editId ?: db.collection("eventos").document().id
                                 val anterior = items.firstOrNull { it.first == id }?.second
-                                val dados = hashMapOf<String, Any>(
-                                    "nomeEvento" to titulo.trim(), "dataEvento" to data.trim(), "horarioEvento" to horario.trim(),
-                                    "localEvento" to endereco.trim(), "enderecoEvento" to endereco.trim(), "descricaoEvento" to descricao.trim(),
-                                    "categoria" to categoria.trim(), "capacidadeMaxima" to cap, "imagemUrl" to imagemUrl.trim(),
-                                    "organizadorId" to uid, "publicado" to (anterior?.get("publicado") as? Boolean ?: false),
-                                    "encerrado" to (anterior?.get("encerrado") as? Boolean ?: false)
-                                )
-                                db.collection("eventos").document(id).set(dados).addOnSuccessListener {
-                                    salvando = false; titulo="";data="";horario="";endereco="";descricao="";categoria="Acadêmico";capacidade="";imagemUrl="";editId=null;carregar()
-                                    Toast.makeText(this@OrganizerEventsActivity, "Evento salvo como rascunho.", Toast.LENGTH_SHORT).show()
-                                }.addOnFailureListener { salvando = false; Toast.makeText(this@OrganizerEventsActivity, "Falha ao salvar. Confira as regras do Firestore.", Toast.LENGTH_LONG).show() }
+                                val uriFoto = imagemSelecionada
+                                val fotoRef = if (uriFoto != null) FirebaseStorage.getInstance("gs://login-dc4d7.firebasestorage.app").reference.child("eventos/$uid/$id/capa_${System.currentTimeMillis()}.jpg") else null
+                                val upload = if (uriFoto != null && fotoRef != null) fotoRef.putFile(uriFoto).continueWithTask { task ->
+                                    if (!task.isSuccessful) throw (task.exception ?: Exception("Falha ao enviar foto"))
+                                    fotoRef.downloadUrl
+                                }.addOnSuccessListener { downloadUri ->
+                                    salvarEvento(id, uid, titulo, descricao, categoria, data, horario, endereco, cap, downloadUri.toString(), anterior, onFinish = { salvando=false; titulo="";data="";horario="";endereco="";descricao="";categoria="Acadêmico";capacidade="";imagemUrl="";imagemSelecionada=null;editId=null;carregar() }, onError = { salvando=false; Toast.makeText(this@OrganizerEventsActivity, it, Toast.LENGTH_LONG).show() })
+                                }.addOnFailureListener { salvando=false; Toast.makeText(this@OrganizerEventsActivity, "Falha ao enviar a foto: ${it.localizedMessage}", Toast.LENGTH_LONG).show() }
+                                else null
+                                if (uriFoto == null) salvarEvento(id, uid, titulo, descricao, categoria, data, horario, endereco, cap, imagemUrl, anterior, onFinish = { salvando=false;titulo="";data="";horario="";endereco="";descricao="";categoria="Acadêmico";capacidade="";imagemUrl="";editId=null;carregar() }, onError = { salvando=false;Toast.makeText(this@OrganizerEventsActivity,it,Toast.LENGTH_LONG).show() })
                             }, modifier = Modifier.fillMaxWidth(), enabled = !salvando) { Text(if (salvando) "Salvando..." else if (editId == null) "Salvar rascunho" else "Salvar alterações") }
-                            if (editId != null) TextButton(onClick = { editId=null;titulo="";data="";horario="";endereco="";descricao="";categoria="Acadêmico";capacidade="";imagemUrl="" }, modifier = Modifier.fillMaxWidth()) { Text("Cancelar edição") }
+                            if (editId != null) TextButton(onClick = { editId=null;titulo="";data="";horario="";endereco="";descricao="";categoria="Acadêmico";capacidade="";imagemUrl="";imagemSelecionada=null }, modifier = Modifier.fillMaxWidth()) { Text("Cancelar edição") }
                         }
                     }
                     Spacer(Modifier.height(22.dp)); Text("Seus eventos", style = MaterialTheme.typography.titleLarge, color = OrganizerNavy)
@@ -128,6 +130,27 @@ class OrganizerEventsActivity : ComponentActivity() {
         db.collection("eventos").document(id).update(campo, valor)
             .addOnSuccessListener { carregar() }
             .addOnFailureListener { Toast.makeText(this, "Não foi possível atualizar o evento.", Toast.LENGTH_SHORT).show() }
+    }
+
+    private fun salvarEvento(
+        id: String, uid: String, titulo: String, descricao: String, categoria: String,
+        data: String, horario: String, endereco: String, capacidade: Int, imagemUrl: String,
+        anterior: Map<String, Any>?, onFinish: () -> Unit, onError: (String) -> Unit
+    ) {
+        val dados = hashMapOf<String, Any>(
+            "nomeEvento" to titulo.trim(), "dataEvento" to data.trim(), "horarioEvento" to horario.trim(),
+            "localEvento" to endereco.trim(), "enderecoEvento" to endereco.trim(), "descricaoEvento" to descricao.trim(),
+            "categoria" to categoria.trim(), "capacidadeMaxima" to capacidade, "imagemUrl" to imagemUrl,
+            "organizadorId" to uid,
+            "publicado" to (anterior?.get("publicado") as? Boolean ?: false),
+            "encerrado" to (anterior?.get("encerrado") as? Boolean ?: false),
+            "vagasOcupadas" to (anterior?.get("vagasOcupadas") as? Number ?: 0),
+            "proximaPosicaoLista" to (anterior?.get("proximaPosicaoLista") as? Number ?: 1),
+            "filaEspera" to (anterior?.get("filaEspera") ?: emptyMap<String, Long>())
+        )
+        db.collection("eventos").document(id).set(dados)
+            .addOnSuccessListener { onFinish(); Toast.makeText(this, "Evento salvo como rascunho.", Toast.LENGTH_SHORT).show() }
+            .addOnFailureListener { onError("Falha ao salvar evento: ${it.localizedMessage}") }
     }
 
     private fun carregar() {
