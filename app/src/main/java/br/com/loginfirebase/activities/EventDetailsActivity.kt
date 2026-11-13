@@ -71,6 +71,7 @@ class EventDetailsActivity : ComponentActivity() {
                         ?: intent.getStringExtra("localEvento").orEmpty())
                     OutlinedButton(onClick = { abrirFotos() }, modifier = Modifier.fillMaxWidth()) { Text("Fotos do evento") }
                     OutlinedButton(onClick = { abrirAudios() }, modifier = Modifier.fillMaxWidth()) { Text("Áudios do evento") }
+                    OutlinedButton(onClick = { abrirVideos() }, modifier = Modifier.fillMaxWidth()) { Text("Vídeos do evento") }
                     OutlinedButton(
                         onClick = { abrirMapa() },
                         modifier = Modifier.fillMaxWidth(),
@@ -143,6 +144,13 @@ class EventDetailsActivity : ComponentActivity() {
 
     private fun abrirAudios() {
         startActivity(Intent(this, EventAudioActivity::class.java).apply {
+            putExtra("idEvento", eventId)
+            putExtra("nomeEvento", intent.getStringExtra("nomeEvento"))
+        })
+    }
+
+    private fun abrirVideos() {
+        startActivity(Intent(this, EventVideoActivity::class.java).apply {
             putExtra("idEvento", eventId)
             putExtra("nomeEvento", intent.getStringExtra("nomeEvento"))
         })
