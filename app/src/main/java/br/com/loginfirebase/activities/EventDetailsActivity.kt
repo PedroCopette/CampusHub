@@ -2,6 +2,7 @@ package br.com.loginfirebase.activities
 
 import android.os.Bundle
 import android.content.Intent
+import android.net.Uri
 import android.graphics.Bitmap
 import android.util.Log
 import android.widget.Toast
@@ -66,7 +67,13 @@ class EventDetailsActivity : ComponentActivity() {
                     Text(intent.getStringExtra("nomeEvento") ?: "Detalhes do evento", style = MaterialTheme.typography.headlineMedium)
                     Spacer(Modifier.height(10.dp))
                     Text("${intent.getStringExtra("dataEvento") ?: ""} · ${intent.getStringExtra("horarioEvento") ?: ""}")
-                    Text(intent.getStringExtra("localEvento") ?: "")
+                    Text(intent.getStringExtra("enderecoEvento")?.takeIf { it.isNotBlank() }
+                        ?: intent.getStringExtra("localEvento").orEmpty())
+                    OutlinedButton(
+                        onClick = { abrirMapa() },
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = !intent.getStringExtra("enderecoEvento").isNullOrBlank() || !intent.getStringExtra("localEvento").isNullOrBlank()
+                    ) { Text("Ver localização no mapa") }
                     Spacer(Modifier.height(12.dp)); Text(intent.getStringExtra("descricaoEvento") ?: "")
                     Spacer(Modifier.height(18.dp))
                     Text(if (capacidade > 0) "Vagas: $vagas de $capacidade" else "Vagas limitadas", style = MaterialTheme.typography.titleMedium)
@@ -110,6 +117,19 @@ class EventDetailsActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    private fun abrirMapa() {
+        val endereco = intent.getStringExtra("enderecoEvento")?.takeIf { it.isNotBlank() }
+            ?: intent.getStringExtra("localEvento")?.takeIf { it.isNotBlank() }
+        if (endereco == null) {
+            Toast.makeText(this, "Este evento ainda não tem endereço cadastrado.", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val uri = Uri.parse("geo:0,0?q=${Uri.encode(endereco)}")
+        val mapa = Intent(Intent.ACTION_VIEW, uri)
+        if (mapa.resolveActivity(packageManager) != null) startActivity(mapa)
+        else startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/maps/search/?api=1&query=${Uri.encode(endereco)}")))
     }
 
     private fun carregarEstado() {
