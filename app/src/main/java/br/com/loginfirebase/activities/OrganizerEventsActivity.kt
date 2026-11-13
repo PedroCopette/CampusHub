@@ -12,6 +12,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -28,6 +29,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 
 private val OrganizerNavy = Color(0xFF172D59)
 private val OrganizerBlue = Color(0xFF2864D7)
+private val OrganizerPaleBlue = Color(0xFFEAF2FF)
 
 class OrganizerEventsActivity : ComponentActivity() {
     private val db = FirebaseFirestore.getInstance()
@@ -44,7 +46,15 @@ class OrganizerEventsActivity : ComponentActivity() {
         }.addOnFailureListener { Toast.makeText(this, "Não foi possível validar seu perfil.", Toast.LENGTH_LONG).show(); finish() }
 
         setContent {
-            MaterialTheme {
+            MaterialTheme(colorScheme = lightColorScheme(
+                primary = OrganizerBlue,
+                onPrimary = Color.White,
+                secondary = OrganizerNavy,
+                background = Color(0xFFF4F8FF),
+                surface = Color.White,
+                onSurface = OrganizerNavy,
+                outline = Color(0xFFB9CBE8)
+            )) {
                 var titulo by remember { mutableStateOf("") }
                 var data by remember { mutableStateOf("") }
                 var horario by remember { mutableStateOf("") }
@@ -58,13 +68,20 @@ class OrganizerEventsActivity : ComponentActivity() {
                 var salvando by remember { mutableStateOf(false) }
                 val seletorImagem = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri -> imagemSelecionada = uri }
 
-                Column(Modifier.fillMaxSize().background(Color(0xFFF3F7FD)).statusBarsPadding().navigationBarsPadding().verticalScroll(rememberScrollState()).padding(20.dp)) {
-                    Text("Gerenciar eventos", style = MaterialTheme.typography.headlineMedium, color = OrganizerNavy)
-                    Text("Crie, publique e atualize seus eventos", color = Color(0xFF657694))
+                Column(Modifier.fillMaxSize().background(Color(0xFFF4F8FF)).statusBarsPadding().navigationBarsPadding().verticalScroll(rememberScrollState()).padding(18.dp)) {
+                    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(containerColor = OrganizerNavy)) {
+                        Column(Modifier.padding(horizontal = 20.dp, vertical = 22.dp)) {
+                            Text("PAINEL DO ORGANIZADOR", style = MaterialTheme.typography.labelMedium, color = Color(0xFFBFD5FF))
+                            Spacer(Modifier.height(5.dp))
+                            Text("Gerenciar eventos", style = MaterialTheme.typography.headlineMedium, color = Color.White)
+                            Text("Crie, publique e acompanhe seus eventos", style = MaterialTheme.typography.bodyMedium, color = Color(0xFFE0EAFF))
+                        }
+                    }
                     Spacer(Modifier.height(18.dp))
-                    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(22.dp), colors = CardDefaults.cardColors(containerColor = Color.White)) {
+                    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(22.dp), border = BorderStroke(1.dp, Color(0xFFDCE7F8)), elevation = CardDefaults.cardElevation(3.dp), colors = CardDefaults.cardColors(containerColor = Color.White)) {
                         Column(Modifier.padding(16.dp)) {
                             Text(if (editId == null) "Novo evento" else "Editar evento", style = MaterialTheme.typography.titleLarge, color = OrganizerNavy)
+                            Text("Preencha os dados para montar a página do evento.", style = MaterialTheme.typography.bodySmall, color = Color(0xFF657694))
                             Spacer(Modifier.height(8.dp))
                             CampoEvento("Título", titulo, { titulo = it })
                             CampoEvento("Descrição", descricao, { descricao = it }, singleLine = false)
@@ -73,7 +90,7 @@ class OrganizerEventsActivity : ComponentActivity() {
                             CampoEvento("Horário", horario, { horario = it })
                             CampoEvento("Endereço", endereco, { endereco = it })
                             CampoEvento("Capacidade máxima", capacidade, { capacidade = it }, keyboardType = KeyboardType.Number)
-                            OutlinedButton(onClick = { seletorImagem.launch("image/*") }, modifier = Modifier.fillMaxWidth()) { Text(if (imagemSelecionada != null) "Trocar foto selecionada" else if (imagemUrl.isNotBlank()) "Trocar foto do evento" else "Escolher foto do dispositivo") }
+                            OutlinedButton(onClick = { seletorImagem.launch("image/*") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp), border = BorderStroke(1.dp, OrganizerBlue)) { Text(if (imagemSelecionada != null) "Trocar foto selecionada" else if (imagemUrl.isNotBlank()) "Trocar foto do evento" else "Escolher foto do dispositivo") }
                             Text(if (imagemSelecionada != null) "Nova foto selecionada" else if (imagemUrl.isNotBlank()) "O evento já possui uma foto" else "Nenhuma foto selecionada", color = Color(0xFF657694), style = MaterialTheme.typography.bodySmall)
                             Spacer(Modifier.height(10.dp))
                             Button(onClick = {
@@ -97,20 +114,23 @@ class OrganizerEventsActivity : ComponentActivity() {
                                 }
                                 else null
                                 if (uriFoto == null) salvarEvento(id, uid, titulo, descricao, categoria, data, horario, endereco, cap, imagemUrl, anterior, onFinish = { salvando=false;titulo="";data="";horario="";endereco="";descricao="";categoria="Acadêmico";capacidade="";imagemUrl="";editId=null;carregar() }, onError = { salvando=false;Toast.makeText(this@OrganizerEventsActivity,it,Toast.LENGTH_LONG).show() })
-                            }, modifier = Modifier.fillMaxWidth(), enabled = !salvando) { Text(if (salvando) "Salvando..." else if (editId == null) "Salvar rascunho" else "Salvar alterações") }
+                            }, modifier = Modifier.fillMaxWidth().height(50.dp), enabled = !salvando, shape = RoundedCornerShape(14.dp), colors = ButtonDefaults.buttonColors(containerColor = OrganizerBlue)) { Text(if (salvando) "Salvando..." else if (editId == null) "Salvar rascunho" else "Salvar alterações") }
                             if (editId != null) TextButton(onClick = { editId=null;titulo="";data="";horario="";endereco="";descricao="";categoria="Acadêmico";capacidade="";imagemUrl="";imagemSelecionada=null }, modifier = Modifier.fillMaxWidth()) { Text("Cancelar edição") }
                         }
                     }
-                    Spacer(Modifier.height(22.dp)); Text("Seus eventos", style = MaterialTheme.typography.titleLarge, color = OrganizerNavy)
-                    if (items.isEmpty()) Text("Você ainda não criou eventos.", color = Color(0xFF657694), modifier = Modifier.padding(vertical = 12.dp))
+                    Spacer(Modifier.height(24.dp)); Text("Seus eventos", style = MaterialTheme.typography.titleLarge, color = OrganizerNavy)
+                    Text("${items.size} evento(s) no seu painel", style = MaterialTheme.typography.bodySmall, color = Color(0xFF657694))
+                    if (items.isEmpty()) Card(Modifier.fillMaxWidth().padding(top = 12.dp), shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = OrganizerPaleBlue)) { Text("Você ainda não criou eventos.", color = OrganizerNavy, modifier = Modifier.padding(18.dp)) }
                     items.forEach { (id, d) ->
                         val publicado = d["publicado"] as? Boolean ?: false
                         val encerrado = d["encerrado"] as? Boolean ?: false
-                        Card(Modifier.fillMaxWidth().padding(top = 10.dp), shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = Color.White)) {
+                        Card(Modifier.fillMaxWidth().padding(top = 10.dp), shape = RoundedCornerShape(18.dp), border = BorderStroke(1.dp, Color(0xFFDCE7F8)), elevation = CardDefaults.cardElevation(2.dp), colors = CardDefaults.cardColors(containerColor = Color.White)) {
                             Column(Modifier.padding(16.dp)) {
                                 Text(d["nomeEvento"]?.toString() ?: "Evento", style = MaterialTheme.typography.titleMedium, color = OrganizerNavy)
                                 Text("${d["categoria"] ?: ""} · ${d["dataEvento"] ?: ""} · ${d["capacidadeMaxima"] ?: "—"} vagas", color = Color(0xFF657694))
-                                Text(when { encerrado -> "Encerrado"; publicado -> "Publicado"; else -> "Rascunho" }, color = if (publicado && !encerrado) OrganizerBlue else Color(0xFF657694))
+                                Surface(shape = RoundedCornerShape(50), color = if (publicado && !encerrado) OrganizerPaleBlue else Color(0xFFF0F3F8), modifier = Modifier.padding(top = 8.dp)) {
+                                    Text(when { encerrado -> "Encerrado"; publicado -> "Publicado"; else -> "Rascunho" }, color = if (publicado && !encerrado) OrganizerBlue else Color(0xFF657694), modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp), style = MaterialTheme.typography.labelMedium)
+                                }
                                 Row {
                                     TextButton(onClick = {
                                         editId=id;titulo=d["nomeEvento"]?.toString().orEmpty();data=d["dataEvento"]?.toString().orEmpty();horario=d["horarioEvento"]?.toString().orEmpty();endereco=d["enderecoEvento"]?.toString() ?: d["localEvento"]?.toString().orEmpty();descricao=d["descricaoEvento"]?.toString().orEmpty();categoria=d["categoria"]?.toString().orEmpty();capacidade=d["capacidadeMaxima"]?.toString().orEmpty();imagemUrl=d["imagemUrl"]?.toString().orEmpty()
@@ -121,7 +141,7 @@ class OrganizerEventsActivity : ComponentActivity() {
                             }
                         }
                     }
-                    Spacer(Modifier.height(16.dp)); OutlinedButton(onClick = { finish() }, modifier = Modifier.fillMaxWidth()) { Text("Voltar") }
+                    Spacer(Modifier.height(16.dp)); OutlinedButton(onClick = { finish() }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp), border = BorderStroke(1.dp, OrganizerBlue)) { Text("Voltar") }
                 }
             }
         }
@@ -146,7 +166,7 @@ class OrganizerEventsActivity : ComponentActivity() {
     }
 
     @Composable private fun CampoEvento(label: String, value: String, onValueChange: (String) -> Unit, singleLine: Boolean = true, keyboardType: KeyboardType = KeyboardType.Text) {
-        OutlinedTextField(value, onValueChange, label = { Text(label) }, modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), singleLine = singleLine, minLines = if (singleLine) 1 else 3, keyboardOptions = KeyboardOptions(keyboardType = keyboardType), shape = RoundedCornerShape(14.dp))
+        OutlinedTextField(value, onValueChange, label = { Text(label) }, modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), singleLine = singleLine, minLines = if (singleLine) 1 else 3, keyboardOptions = KeyboardOptions(keyboardType = keyboardType), shape = RoundedCornerShape(14.dp), colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = OrganizerBlue, focusedLabelColor = OrganizerBlue, cursorColor = OrganizerBlue))
     }
 
     private fun atualizarEstado(id: String, campo: String, valor: Boolean) {
