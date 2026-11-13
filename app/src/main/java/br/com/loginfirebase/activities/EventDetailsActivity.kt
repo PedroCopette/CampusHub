@@ -69,6 +69,7 @@ class EventDetailsActivity : ComponentActivity() {
                     Text("${intent.getStringExtra("dataEvento") ?: ""} · ${intent.getStringExtra("horarioEvento") ?: ""}")
                     Text(intent.getStringExtra("enderecoEvento")?.takeIf { it.isNotBlank() }
                         ?: intent.getStringExtra("localEvento").orEmpty())
+                    OutlinedButton(onClick = { abrirFotos() }, modifier = Modifier.fillMaxWidth()) { Text("Fotos do evento") }
                     OutlinedButton(
                         onClick = { abrirMapa() },
                         modifier = Modifier.fillMaxWidth(),
@@ -130,6 +131,13 @@ class EventDetailsActivity : ComponentActivity() {
         val mapa = Intent(Intent.ACTION_VIEW, uri)
         if (mapa.resolveActivity(packageManager) != null) startActivity(mapa)
         else startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/maps/search/?api=1&query=${Uri.encode(endereco)}")))
+    }
+
+    private fun abrirFotos() {
+        startActivity(Intent(this, EventPhotosActivity::class.java).apply {
+            putExtra("idEvento", eventId)
+            putExtra("nomeEvento", intent.getStringExtra("nomeEvento"))
+        })
     }
 
     private fun carregarEstado() {
